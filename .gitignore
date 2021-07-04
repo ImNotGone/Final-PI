@@ -50,3 +50,9 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Query Output Files
+q*.csv
+
+# Binary
+imdb
