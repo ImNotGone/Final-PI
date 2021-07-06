@@ -1,6 +1,7 @@
 #include "imdbADT.h"
 #include <stdlib.h>
 #include <string.h>
+#define BLOCK 10
 
 typedef struct tMediaInfo {
     char * title;
@@ -11,6 +12,7 @@ typedef struct tMediaInfo {
 
 typedef struct tNGenre {
     char * genre;
+    size_t dimGenre;
     size_t cantFilms;
     struct tNGenre * tail;
 } tNGenre;
@@ -32,15 +34,19 @@ typedef struct imdbCDT {
     tLYear iter;
 } imdbCDT;
 
-static int compareYear(int year1, int year2){
+static int compareYear(int year1, int year2) {
     return year1 - year2;
+}
+
+static int compareGenre(char * genre1, char * genre2) {
+    return strcmp(genre1, genre2);
 }
 
 imdbADT newImdb() { 
     return calloc(1, sizeof(imdbCDT));
 }
 
-static char * copy (char * dest, char * source , size_t dim, size_t *newDim){
+static char * copy (char * dest, char * source , size_t dim, size_t *newDim) {
     int i, j;
     for (i = dim, j = 0; source[j] != '\0'; j++) {
         if (j == 0 || i % BLOCK == 0){
@@ -62,8 +68,8 @@ static void addMedia( tMediaInfo * media , char * newTitle , float newRating , s
 
 static tLYear addToYear(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
     int c;
-    if (first == NULL || (c=compareYear(year, first->year)) > 0 ){
-        tLYear aux = calloc(1,sizeof(tNYear));
+    if (first == NULL || (c=compareYear(year, first->year)) > 0 ) {
+        tLYear aux = calloc(1, sizeof(tNYear));
         aux->year=year;
         aux->tail= first;
         aux->cant[type]++;
@@ -77,14 +83,41 @@ static tLYear addToYear(tLYear first, titleType type, char * title, int year, fl
         }
         return first;
     }
-    first->tail = addToYear(first->tail, year);
+    first->tail = addToYear(first->tail, type, title, year, rating, votes);
     return first;
 }
 
+static tLGenre addToGenreRec(tLGenre first, char * genre) {
+    int c;
+    if (first == NULL || (c=compareGenre(genre, first->genre)) > 0 ) {
+        tLGenre aux = calloc(1, sizeof(tNGenre));
+        aux->genre = copy( aux->genre, genre, 0, &aux->dimGenre);
+        aux->cantFilms++;
+        aux->tail = first;
+        return first;
+    }
+    if ( c = 0) {
+        first->cantFilms++;
+        return first;
+    }
+    first->tail = addToGenreRec(first->tail, genre);
+    return first;
+}
 
+static void addToGenre(tLYear first, int year, char * genre) {
+    tLYear aux = first;
+    while (aux != NULL && compareYear(aux->year, year) == 0) {
+        aux = aux->tail;
+    }
+    aux->first = addToGenreRec(aux->first, genre);
+}
 
-void addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genre) {
+void addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
     imdb->first = addToYear(imdb, type, title, year, rating, votes);
-    
-    
+    if (type == MOVIE) {
+        char * genre;
+        for (genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
+             addToGenre(imdb->first, year, genre);   
+        }
+    }
 }
