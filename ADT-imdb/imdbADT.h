@@ -3,13 +3,15 @@
 
 typedef struct imdbCDT * imdbADT;
 
-//devuelve un nuevo TAD vacio
-imdbADT newImdb(imdbADT imdb);
+// Genera TAD vacio para almacenar los datos necesarios
+// Si no se pudo crear retorna NULL
+imdbADT newImdb(void);
 
-//libera la memoria reservada por el TAD
+// Libera la memoria reservada por el TAD
 void freeImdb(imdbADT imdb);
 
-//agrega la informacion correspondiente al TAD
+// Permite la carga de datos al TAD
+// recibe una linea con la informacion a cargar
 void addData(imdbADT imdb, char * data);
 
 #endif //IMDB_ADT_H
