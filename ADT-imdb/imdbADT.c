@@ -3,13 +3,13 @@
 
 typedef struct tMediaInfo {
     char * title;
-    int cantVotos;
+    size_t cantVotos;
     float rating;
 } tMediaInfo;
 
 typedef struct tNGenre {
     char * genre;
-    int cantFilms;
+    size_t cantFilms;
     struct tNGenre * tail;
 } tNGenre;
 
@@ -17,9 +17,10 @@ typedef tNGenre * tLGenre;
 
 typedef struct tNYear {
     int year;
-    int cantFilms;
-    int cantSeries;
+    size_t cantFilms;
+    size_t cantSeries;
     tLGenre first;
+    tLGenre iterG;
     tMediaInfo film;
     tMediaInfo series; 
     struct tNYear * tail; 
@@ -29,7 +30,7 @@ typedef tNYear * tLYear;
 
 typedef struct imdbCDT {
     tLYear first;
-    tLYear iter;
+    tLYear iterA;
 } imdbCDT;
 
 
