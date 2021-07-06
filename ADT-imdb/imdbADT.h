@@ -3,6 +3,8 @@
 
 typedef struct imdbCDT * imdbADT;
 
+typedef enum titleType{MOVIE = 0, SERIES};
+
 // Genera TAD vacio para almacenar los datos necesarios
 // Si no se pudo crear retorna NULL
 imdbADT newImdb(void);
