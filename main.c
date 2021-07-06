@@ -2,11 +2,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
+#include <string.h>
 
 #define CANT_QUERYS 3
-#define BUFFER_SIZE 128 
+#define BUFF_SIZE 128 
+#define DELIM ";"
+#define NONE "/N"
 
-typedef enum {ARGC = 1, INV_FILE} errors;
+typedef enum {ARGC = 1, INV_FILE, NO_MEM} errors;
 
 // Aborta el programa con el valor que recibe
 // enviando un mensaje a la salida de error
@@ -33,6 +36,19 @@ int main(int cantArg, char * args[]) {
     }
 
     // todo usar los archivos
+    char buff[BUFF_SIZE], * type, * title, * year, * genres, * rating, * cantVotos;
+    imdbADT imdb = newImdb();
+    if (imdb==NULL){
+        closeFiles(files, fileCount);
+        errNout("No hay memoria disponible en el heap", NO_MEM);
+    }
+
+    // Levantamos la primera linea que no contiene informacion
+    // No verificamos que el archivo este vacio  
+    // puesto que se asume que los datos son correctos
+    fgets(buff, BUFF_SIZE, data);
+    while(fgets(buff, BUFF_SIZE, data) != NULL) {
+    }
 
     closeFiles(files, fileCount);
     return 0;

@@ -1,4 +1,5 @@
 #include "imdbADT.h"
+#include <stdlib.h>
 
 typedef struct tMediaInfo {
     char * title;
@@ -30,3 +31,8 @@ typedef struct imdbCDT {
     tLYear first;
     tLYear iter;
 } imdbCDT;
+
+
+imdbADT newImdb() { 
+    return calloc(1, sizeof(imdbCDT));
+}
