@@ -6,12 +6,15 @@
 #define BLOCK 10
 #define DELIM ";"
 #define DELIM_GENRE ","
+#define NONE "\\N"
 typedef struct imdbCDT * imdbADT;
 #define CANT_TYPES 2
 typedef enum {MOVIE = 0, SERIES} titleType;
 #define T_GEN MOVIE
+#define OK 1
 #define BUFF_OF (-1)
-#define NERR 0
+#define MEM_ERROR (-2)
+#define NERR (-3)
 
 // Genera TAD vacio para almacenar los datos necesarios
 // Si no se pudo crear retorna NULL
@@ -22,7 +25,7 @@ void freeImdb(imdbADT imdb);
 
 // Permite la carga de datos al TAD
 // recibe los datos a cargar en el TAD
-void addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres);
+int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres);
 
 // Inicia el iterador por anios
 void toBeginYear(imdbADT imdb);

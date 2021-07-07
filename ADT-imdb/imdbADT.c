@@ -77,46 +77,60 @@ static char * copy (char * source) {
     for (i = 0; source[i] != '\0'; i++) {
         if (i % BLOCK == 0){
             dest = realloc(dest, (i + BLOCK)*sizeof(char)); // sizeof por claridad aunque no hace falta (1)
+            if (dest == NULL)
+                return NULL;
         }
         dest[i] = source[i];
     }
     dest = realloc(dest, (i+1)*sizeof(char)); // idem (1)
+    if (dest == NULL)
+        return NULL;
     dest[i] = '\0';
     return dest;
 }
 
-static void addMedia( tMediaInfo * media , char * newTitle , float newRating , size_t newVotes) {
+static void addMedia( tMediaInfo * media , char * newTitle , float newRating , size_t newVotes, int * flag) {
     free(media->title); // si es NULL no pasa nada, sino lo libera
     media->title = copy(newTitle);
+    if (media->title == NULL)
+        *flag = MEM_ERROR;
     media->cantVotos = newVotes;
     media->rating = newRating;
 }
 
-static tLYear addToYear(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
+static tLYear addToYear(tLYear first, titleType type, char * title, int year, float rating, size_t votes, int * flag) {
     int c;
     if (first == NULL || (c=compareYear(first->year, year)) > 0 ) {
         tLYear aux = calloc(1, sizeof(tNYear)); // para que se inicie correctamente el vector de tMediaInfo y de cantidades
+        if (aux == NULL){
+            *flag = MEM_ERROR;
+            return first; // Si no hay memoria quiero que se siga encadenando la lista y ademas no puedo desreferenciar aux 
+        }
         aux->year = year;
         aux->tail = first;
         aux->cant[type] = 1;
-        addMedia(&aux->media[type], title, rating, votes);
+        addMedia(&aux->media[type], title, rating, votes, flag);
         return aux;
     }
     if (c == 0){
         first->cant[type]++;
         if (votes > first->media[type].cantVotos) {
-            addMedia(&first->media[type], title, rating, votes);
+            addMedia(&first->media[type], title, rating, votes, flag);
         }
         return first;
     }
-    first->tail = addToYear(first->tail, type, title, year, rating, votes);
+    first->tail = addToYear(first->tail, type, title, year, rating, votes, flag);
     return first;
 }
 
-static tLGenre addToGenreRec(tLGenre first, char * genre) {
+static tLGenre addToGenreRec(tLGenre first, char * genre, int * flag) {
     int c;
     if (first == NULL || (c=compareGenre(first->genre, genre)) > 0 ) {
         tLGenre aux = malloc(sizeof(tNGenre)); // malloc ya que voy a llenar toda la struct
+        if (aux == NULL){
+            *flag = MEM_ERROR;
+            return first; // Si no hay memoria quiero que se siga encadenando la lista y ademas no puedo desreferenciar aux 
+        }
         aux->genre = copy(genre);
         aux->cantFilms = 1;
         aux->tail = first;
@@ -127,7 +141,7 @@ static tLGenre addToGenreRec(tLGenre first, char * genre) {
         first->cantFilms++;
         return first;
     }
-    first->tail = addToGenreRec(first->tail, genre);
+    first->tail = addToGenreRec(first->tail, genre, flag);
     return first;
 }
 
@@ -139,24 +153,30 @@ static tLYear searchYear(tLYear first, int year) {
     return searchYear(first->tail, year);
 }
 
-static void addToGenre(tLYear first, int year, char * genre) {
+static void addToGenre(tLYear first, int year, char * genre, int * flag) {
     /* dsp vemos si lo usamos (seria mas eficiente [pero menos fachera ;)] )
     tLYear aux = first;
     while (compareYear(aux->year, year) < 0) {
         aux = aux->tail;
     }*/
     tLYear cYear = searchYear(first, year);
-    cYear->first = addToGenreRec(cYear->first, genre);
+    cYear->first = addToGenreRec(cYear->first, genre, flag);
 }
 
-void addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
-    imdb->first = addToYear(imdb->first, type, title, year, rating, votes);
+int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
+    int flag = OK;
+    imdb->first = addToYear(imdb->first, type, title, year, rating, votes, &flag);
+    if (flag == MEM_ERROR)
+        return MEM_ERROR;
     if (type == T_GEN) {
         char * genre;
         for (genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
-            addToGenre(imdb->first, year, genre);   
+            addToGenre(imdb->first, year, genre, &flag);
+            if (flag == MEM_ERROR)
+                return MEM_ERROR;   
         }
     }
+    return flag;
 }
 
 void toBeginYear(imdbADT imdb) {
@@ -207,9 +227,13 @@ int getQ2(imdbADT imdb, char * buff, int year) {
 int getQ3(imdbADT imdb, char * buff) {
     int year = imdb->iterY->year;
     char * film = imdb->iterY->media[MOVIE].title;
+    if (film == NULL)
+        film = NONE; 
     size_t votesFilm = imdb->iterY->media[MOVIE].cantVotos;
     float ratingFilm = imdb->iterY->media[MOVIE].rating;
     char * serie = imdb->iterY->media[SERIES].title;
+    if (serie == NULL)
+        serie = NONE;
     size_t votesSerie = imdb->iterY->media[SERIES].cantVotos;
     float ratingSeries = imdb->iterY->media[SERIES].rating;
     return sprintf(buff, "%d%s%s%s%zu%s%.1f%s%s%s%zu%s%.1f", year, DELIM, film, DELIM, votesFilm, DELIM, ratingFilm, DELIM, serie, DELIM, votesSerie, DELIM, ratingSeries);

@@ -7,7 +7,8 @@
 
 #define CANT_QUERYS 3
 #define BUFF_SIZE 512 
-#define NONE "/N"
+#define FALSE 0
+#define TRUE !FALSE
 #define HEADER1 "year;films;series"
 #define HEADER2 "year;genre;films"
 #define HEADER3 "startYear;film;votesFilm;ratingFilm;serie;votesSerie;ratingSerie"
@@ -46,22 +47,27 @@ int main(int cantArg, char * args[]) {
         errNOut("Hubo un error al abrir un archivo", INV_FILE);
     }
 
-    // todo usar los archivos
-    char buff[BUFF_SIZE], * type, * title, * genres, * token;
-    int year, votes;
-    float rating;
+    
     imdbADT imdb = newImdb();
     if (imdb == NULL){
         closeFiles(files, fileCount);
         errNOut("No hay memoria disponible en el heap", NO_MEM);
     }
 
+    /*================ CARGA DE DATOS ================*/
+
+
+    char buff[BUFF_SIZE], * type, * title, * genres, * token;
+    int year, votes, validYear; // validYear para verificar que el anio sea valido
+    float rating;
+    
     // Levantamos la primera linea que no contiene informacion
     // No verificamos que el archivo este vacio  
     // puesto que se asume que los datos son correctos
     fgets(buff, BUFF_SIZE, data);
-    /*================ CARGA DE DATOS ================*/
+
     while(fgets(buff, BUFF_SIZE, data) != NULL) {
+        validYear = TRUE;
         token = strtok(buff, DELIM);
         for(size_t pos = 0; pos < CANT_DIVIDERS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
             // Se asumio que no hay ningun NONE en {type, title, year, genre, rating, votes}
@@ -69,16 +75,26 @@ int main(int cantArg, char * args[]) {
             switch (pos) {
                 case TYPE: type = token; break;
                 case TITLE: title = token; break;
-                case S_YEAR: year = atoi(token); break;
+                case S_YEAR:
+                    if ( strcmp(token, NONE) == 0)
+                        validYear = FALSE;
+                    year = atoi(token);
+                    break;
                 case GENRES: genres = token; break;
                 case RATING: rating = atof(token); break;
                 case VOTES: votes = atoi(token); break;
             }
         }
-        if (strcmp(type, "movie") == 0) {
-            addData(imdb, MOVIE, title, year, rating, votes, genres);
-        } else if (strcmp(type, "tvSeries") == 0) {
-            addData(imdb, SERIES, title, year, rating, votes, genres);
+        if (validYear) {
+            if (strcmp(type, "movie") == 0) {
+                if (addData(imdb, MOVIE, title, year, rating, votes, genres) == MEM_ERROR) {
+                    /* COSAS DE ERROR */
+                }
+            } else if (strcmp(type, "tvSeries") == 0) {
+                if (addData(imdb, SERIES, title, year, rating, votes, genres) == MEM_ERROR) {
+                    /* COSAS DE ERROR */
+                }
+            }
         }
     }
 
