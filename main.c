@@ -42,12 +42,17 @@ int main(int cantArg, char * args[]) {
     FILE * query3 = fopen("query3.csv", "w+");
     FILE * files[] = {data, query1, query2, query3};
     size_t fileCount = CANT_QUERYS + cantArg - 1;
-    if (errno == ENOENT) { // todo errores de privilegios
-        closeFiles(files, fileCount);
-        errNOut("Hubo un error al abrir un archivo", INV_FILE);
+    // Se verifica que fopen no tuviese errores
+    // en caso de que los hubiese se cierran los archivos
+    // y se manda a salida de error un mensaje junto con 
+    // errno como exit value
+    for(int i = 0; i < fileCount; i++) {
+        if(files[i] == NULL) {
+            closeFiles(files, fileCount);
+            errNOut("Hubo un error al abrir un archivo", errno);
+        }
     }
 
-    
     imdbADT imdb = newImdb();
     if (imdb == NULL){
         closeFiles(files, fileCount);
@@ -55,8 +60,6 @@ int main(int cantArg, char * args[]) {
     }
 
     /*================ CARGA DE DATOS ================*/
-
-
     char buff[BUFF_SIZE], * type, * title, * genres, * token;
     int year, votes, validYear; // validYear para verificar que el anio sea valido
     float rating;
