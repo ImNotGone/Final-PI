@@ -25,7 +25,7 @@ int hasNextForYears(imdbADT imdb);
 
 // Pasa al siguiente anio si es que existe, luego retorna en su nombre el ultimo 
 // anio en el que estuvo parado para asi mostrar cantidad de series y peliculas
-tLYear NextForYears(imdbADT imdb);
+char * NextForYears(imdbADT imdb);
 
 // Para comenzar el iterador por generos
 void toBeginForGenre(imdbADT imdb);
@@ -35,6 +35,6 @@ int hasNextForGenre(imdbADT imdb);
 
 // Pasa al siguiente genero si es que existe, luego retorna en su nombre el
 // ultimo genero al que accedio para luego mostrar cuantas peliculas hubieron
-tLGenre nextForGenre(imdbADT imdb);
+char * nextForGenre(imdbADT imdb);
 
 #endif //IMDB_ADT_H
