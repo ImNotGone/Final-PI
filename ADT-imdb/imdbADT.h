@@ -3,11 +3,16 @@
 
 #include <stdlib.h>
 
+#define BLOCK 10
+#define DELIM ";"
 #define DELIM_GENRE ","
 typedef struct imdbCDT * imdbADT;
 #define CANT_TYPES 2
 typedef enum {MOVIE = 0, SERIES} titleType;
 #define T_GEN MOVIE
+#define BUFF_OF (-1)
+#define NERR 0
+
 // Genera TAD vacio para almacenar los datos necesarios
 // Si no se pudo crear retorna NULL
 imdbADT newImdb(void);
@@ -19,24 +24,31 @@ void freeImdb(imdbADT imdb);
 // recibe los datos a cargar en el TAD
 void addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres);
 
-// Para comenzar el iterador de anios
-void toBeginForYears(imdbADT imdb);
+// Inicia el iterador por anios
+void toBeginYear(imdbADT imdb);
 
-// Retorna 1 si hay un anio siguiente , 0 si llego al ultimo
-int hasNextForYears(imdbADT imdb);
+// Verifica que haya un siguiente elemento para el iterador de anios
+int hasNextYear(imdbADT imdb);
 
-// Pasa al siguiente anio si es que existe, luego retorna en su nombre el ultimo 
-// anio en el que estuvo parado para asi mostrar cantidad de series y peliculas
-char ** nextForYear(imdbADT imdb , size_t * amount , size_t * votes , float * rating , int * year);
+// Avanza la posicion del iterador por anio
+int nextYear(imdbADT imdb);
 
-// Para comenzar el iterador por generos
-void toBeginForGenre(imdbADT imdb);
+// Inicia el iterador por generos en el anio indicado
+void toBeginGenre(imdbADT imdb, int year);
 
-//retorna 1 si hay otro genero , 0 si llego al ultimo
-int hasNextForGenre(imdbADT imdb);
+// Verifica que haya un siguiente elemento para el iterador de generos en el anio indicado
+int hasNextGenre(imdbADT imdb);
 
-// Pasa al siguiente genero si es que existe, luego retorna en su nombre el
-// ultimo genero al que accedio para luego mostrar cuantas peliculas hubieron
-char * nextForGenre(imdbADT imdb , size_t amount);
+// Avanza la posicion del iterador por genero
+int nextGenre(imdbADT imdb);
+
+// Carga la informacion necesaria para la query 1 en el buffer
+int getQ1(imdbADT imdb, char * buff);
+
+// Carga la informacion necesaria para la query 2 en el buffer
+int getQ2(imdbADT imdb, char * buff, int year);
+
+// Carga la informacion necesaria para la query 3 en el buffer
+int getQ3(imdbADT imdb, char * buff);
 
 #endif //IMDB_ADT_H

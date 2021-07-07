@@ -1,8 +1,8 @@
 #include "imdbADT.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
-#define BLOCK 10
 #define ISNULL(x) ((x) == NULL)
 
 typedef struct tMediaInfo {
@@ -80,8 +80,8 @@ static char * copy (char * source) {
         }
         dest[i] = source[i];
     }
-    dest[i] = '\0';
     dest = realloc(dest, (i+1)*sizeof(char)); // idem (1)
+    dest[i] = '\0';
     return dest;
 }
 
@@ -157,4 +157,60 @@ void addData(imdbADT imdb, titleType type, char * title, int year, float rating,
             addToGenre(imdb->first, year, genre);   
         }
     }
+}
+
+void toBeginYear(imdbADT imdb) {
+    imdb->iterY = imdb->first;
+}
+
+int hasNextYear(imdbADT imdb) {
+    return imdb->iterY != NULL;
+}
+
+int nextYear(imdbADT imdb) {
+    if(!hasNextYear(imdb))
+        return NERR;
+    int aux = imdb->iterY->year;
+    imdb->iterY = imdb->iterY->tail;
+    return aux;
+}
+
+void toBeginGenre(imdbADT imdb, int year){
+    tLYear aux = searchYear( imdb->first , year);
+    imdb->iterG = aux->first;
+}
+
+int hasNextGenre(imdbADT imdb){
+    return imdb->iterG != NULL;
+}
+
+int nextGenre(imdbADT imdb){
+    if(!hasNextGenre(imdb))
+        return NERR;
+    imdb->iterG = imdb->iterG->tail;
+    return !NERR;
+}
+
+int getQ1(imdbADT imdb, char * buff) {
+    int year = imdb->iterY->year;
+    size_t films = imdb->iterY->cant[MOVIE];
+    size_t series = imdb->iterY->cant[SERIES];
+    return sprintf(buff, "%d%s%zu%s%zu", year, DELIM ,films, DELIM, series);
+}
+
+int getQ2(imdbADT imdb, char * buff, int year) {
+    size_t films = imdb->iterG->cantFilms;
+    char * genre = imdb->iterG->genre;
+    return sprintf(buff, "%d%s%s%s%zu", year, DELIM, genre, DELIM, films);
+}
+
+int getQ3(imdbADT imdb, char * buff) {
+    int year = imdb->iterY->year;
+    char * film = imdb->iterY->media[MOVIE].title;
+    size_t votesFilm = imdb->iterY->media[MOVIE].cantVotos;
+    float ratingFilm = imdb->iterY->media[MOVIE].rating;
+    char * serie = imdb->iterY->media[SERIES].title;
+    size_t votesSerie = imdb->iterY->media[SERIES].cantVotos;
+    float ratingSeries = imdb->iterY->media[SERIES].rating;
+    return sprintf(buff, "%d%s%s%s%zu%s%.1f%s%s%s%zu%s%.1f", year, DELIM, film, DELIM, votesFilm, DELIM, ratingFilm, DELIM, serie, DELIM, votesSerie, DELIM, ratingSeries);
 }

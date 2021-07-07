@@ -6,26 +6,33 @@
 #include <math.h>
 
 #define CANT_QUERYS 3
-#define BUFF_SIZE 128 
-#define DELIM ";"
+#define BUFF_SIZE 512 
 #define NONE "/N"
-#define CANT_DIVIDERS 7
+#define HEADER1 "year;films;series"
+#define HEADER2 "year;genre;films"
+#define HEADER3 "startYear;film;votesFilm;ratingFilm;serie;votesSerie;ratingSerie"
 
 typedef enum ERRORS {ARGC = 1, INV_FILE, NO_MEM} ERRORS;
+
+#define CANT_DIVIDERS 7
 // no ponemos runtime porque no se usa
 typedef enum DIVIDERS {TYPE = 0, TITLE, S_YEAR, E_YEAR, GENRES, RATING, VOTES} DIVIDERS; 
 
 // Aborta el programa con el valor que recibe
 // enviando un mensaje a la salida de error
-void errNout(const char * errMsg, int exitCode);
+void errNOut(const char * errMsg, int exitCode);
 
 // Cierra los archivos que recibe
 void closeFiles(FILE ** files, size_t fileCount);
 
+// Libera los recursos utilizados, aborta el programa 
+// con el codigo indicado
+void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg,int exitCode);
+
 // Permite el procesamiento de los datos de Imdb
 int main(int cantArg, char * args[]) {
     if (cantArg != 2)
-        errNout("Cantidad invalida de parametros", ARGC);
+        errNOut("Cantidad invalida de parametros", ARGC);
 
     errno = 0;
     FILE * data = fopen(args[1], "r");
@@ -36,7 +43,7 @@ int main(int cantArg, char * args[]) {
     size_t fileCount = CANT_QUERYS + cantArg - 1;
     if (errno == ENOENT) { // todo errores de privilegios
         closeFiles(files, fileCount);
-        errNout("Hubo un error al abrir un archivo", INV_FILE);
+        errNOut("Hubo un error al abrir un archivo", INV_FILE);
     }
 
     // todo usar los archivos
@@ -46,7 +53,7 @@ int main(int cantArg, char * args[]) {
     imdbADT imdb = newImdb();
     if (imdb == NULL){
         closeFiles(files, fileCount);
-        errNout("No hay memoria disponible en el heap", NO_MEM);
+        errNOut("No hay memoria disponible en el heap", NO_MEM);
     }
 
     // Levantamos la primera linea que no contiene informacion
@@ -73,23 +80,49 @@ int main(int cantArg, char * args[]) {
         } else if (strcmp(type, "tvSeries") == 0) {
             addData(imdb, SERIES, title, year, rating, votes, genres);
         }
-
     }
 
-    /*================ QUERY 1 ================*/
-    /*code*/
+    /*================ HEADERS ================*/
+    fprintf(query1, "%s\n", HEADER1);
+    fprintf(query2, "%s\n", HEADER2);
+    fprintf(query3, "%s\n", HEADER3);
     
-    /*================ QUERY 2 ================*/
-    /*code*/
-
-    /*================ QUERY 3 ================*/
-    /*code*/
+    toBeginYear(imdb);
+    while(hasNextYear(imdb)) {
+        /*============== QUERY 1 ==============*/
+        if (getQ1(imdb, buff) == BUFF_OF) {
+            closeNExit(imdb, files, fileCount, "Se debe incrementar el tamanio del buffer", BUFF_OF);
+        }
+        fprintf(query1, "%s\n", buff);
+        /*============== QUERY 3 ==============*/
+        if (getQ3(imdb, buff) == BUFF_OF) {
+            closeNExit(imdb, files, fileCount, "Se debe incrementar el tamanio del buffer", BUFF_OF);
+        }
+        fprintf(query3, "%s\n", buff);
+        year = nextYear(imdb);
+        toBeginGenre(imdb, year);
+        while(hasNextGenre(imdb)) {
+            /*============== QUERY 2 ==============*/
+            if (getQ2(imdb, buff, year) == BUFF_OF) {
+                closeNExit(imdb, files, fileCount, "Se debe incrementar el tamanio del buffer", BUFF_OF);
+            }
+            fprintf(query2, "%s\n", buff);
+            nextGenre(imdb);
+        }
+        
+    }
     closeFiles(files, fileCount);
     freeImdb(imdb);
     return 0;
 }
 
-void errNout(const char * errMsg, int exitCode) {
+void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg, int exitCode){
+    freeImdb(imdb);
+    closeFiles(files, fileCount);
+    errNOut(errMsg, exitCode);
+}
+
+void errNOut(const char * errMsg, int exitCode) {
     fprintf(stderr, "%s\n", errMsg);
     exit(exitCode);
 }
