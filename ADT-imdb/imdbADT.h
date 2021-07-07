@@ -1,11 +1,13 @@
 #ifndef IMDB_ADT_H
 #define IMDB_ADT_H
 
+#include <stdlib.h>
+
 #define DELIM_GENRE ","
 typedef struct imdbCDT * imdbADT;
 #define CANT_TYPES 2
-typedef enum{MOVIE = 0, SERIES} titleType;
-
+typedef enum {MOVIE = 0, SERIES} titleType;
+#define T_GEN MOVIE
 // Genera TAD vacio para almacenar los datos necesarios
 // Si no se pudo crear retorna NULL
 imdbADT newImdb(void);
@@ -25,7 +27,7 @@ int hasNextForYears(imdbADT imdb);
 
 // Pasa al siguiente anio si es que existe, luego retorna en su nombre el ultimo 
 // anio en el que estuvo parado para asi mostrar cantidad de series y peliculas
-char ** nextForYears(imdbADT imdb , size_t * numbers , float * rating);
+char ** nextForYear(imdbADT imdb , size_t * amount , size_t * votes , float * rating , int * year);
 
 // Para comenzar el iterador por generos
 void toBeginForGenre(imdbADT imdb);

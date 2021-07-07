@@ -9,10 +9,11 @@
 #define BUFF_SIZE 128 
 #define DELIM ";"
 #define NONE "/N"
-#define CANT_DIVIDERS 8
+#define CANT_DIVIDERS 7
 
-typedef enum errors {ARGC = 1, INV_FILE, NO_MEM};
-typedef enum info {TYPE = 0, TITLE, S_YEAR, E_YEAR, GENRES, RATING, VOTES, RUNTIME};
+typedef enum ERRORS {ARGC = 1, INV_FILE, NO_MEM} ERRORS;
+// no ponemos runtime porque no se usa
+typedef enum DIVIDERS {TYPE = 0, TITLE, S_YEAR, E_YEAR, GENRES, RATING, VOTES} DIVIDERS; 
 
 // Aborta el programa con el valor que recibe
 // enviando un mensaje a la salida de error
@@ -33,7 +34,7 @@ int main(int cantArg, char * args[]) {
     FILE * query3 = fopen("query3.csv", "w+");
     FILE * files[] = {data, query1, query2, query3};
     size_t fileCount = CANT_QUERYS + cantArg - 1;
-    if (errno == ENOENT) {
+    if (errno == ENOENT) { // todo errores de privilegios
         closeFiles(files, fileCount);
         errNout("Hubo un error al abrir un archivo", INV_FILE);
     }
@@ -56,6 +57,8 @@ int main(int cantArg, char * args[]) {
     while(fgets(buff, BUFF_SIZE, data) != NULL) {
         token = strtok(buff, DELIM);
         for(size_t pos = 0; pos < CANT_DIVIDERS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
+            // Se asumio que no hay ningun NONE en {type, title, year, genre, rating, votes}
+            // Ya que en el DOC de la consigna se asume que los datos son correctos
             switch (pos) {
                 case TYPE: type = token; break;
                 case TITLE: title = token; break;
@@ -68,8 +71,9 @@ int main(int cantArg, char * args[]) {
         if (strcmp(type, "movie") == 0) {
             addData(imdb, MOVIE, title, year, rating, votes, genres);
         } else if (strcmp(type, "tvSeries") == 0) {
-            addData(imdb, SERIES, title, year, rating, votes, NULL);
+            addData(imdb, SERIES, title, year, rating, votes, genres);
         }
+
     }
 
     /*================ QUERY 1 ================*/
@@ -81,6 +85,7 @@ int main(int cantArg, char * args[]) {
     /*================ QUERY 3 ================*/
     /*code*/
     closeFiles(files, fileCount);
+    freeImdb(imdb);
     return 0;
 }
 
@@ -93,5 +98,4 @@ void closeFiles(FILE * files[], size_t fileCount) {
     for(size_t i = 0; i < fileCount; i++)
         if(files[i] != NULL) 
             fclose(files[i]);
-    return;
 }

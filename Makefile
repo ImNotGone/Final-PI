@@ -11,7 +11,7 @@ QUERYS 		= query1.csv query2.csv query3.csv
 all: $(OBJS)
 	$(COMPILER) $(LINK_FLAGS) $(OBJS) -o $(BINARY)
 
-debug: FLAGS+=$(DEBUG)
+debug: FLAGS += $(DEBUG)
 debug: all
 
 main.o: main.c ADT-imdb/imdbADT.h
