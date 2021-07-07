@@ -10,15 +10,15 @@
     - CORRER EL COMANDO `make` ó `make all` EN LA CONSOLA.
         *EL EJECTUABLE ES CREADO AUTOMATICAMENTE YA QUE EL MAKEFILE RECONOCE
         *ESTE COMANDO. SE CREAN LOS EJECUTABLES.
-    - PARA CORRER CON FLAG -g ```make debug```
+    - PARA CORRER CON FLAG -g `make debug`
 
 
 
 ## EJECUCION
-    - CORRER EL COMANDO EN LA CONSOLA ```./imdb "path_del_archivo"```.
+    - CORRER EL COMANDO EN LA CONSOLA `./imdb "path_del_archivo"`.
 
 ## PARA ELIMINAR ARCHIVOS
-    - ```make clean``` PARA BORRAR TODOS LOS ARCHIVOS
-    - ```make cleanQuerrys``` PARA ELIMINAR LOS ARCHIVOS .csv CREADOS POR EL PROGRAMA.
-    - ```make cleanBinary``` PARA ELIMINAR EL EJECUTABLE (imdb.exe).
-    - ```make cleanObjs``` PARA ELIMINAR LOS ARCHIVOS DE OBJETO ( extensiones .o ).
+    - `make clean` PARA BORRAR TODOS LOS ARCHIVOS
+    - `make cleanQuerrys` PARA ELIMINAR LOS ARCHIVOS .csv CREADOS POR EL PROGRAMA.
+    - `make cleanBinary` PARA ELIMINAR EL EJECUTABLE (imdb.exe).
+    - `make cleanObjs` PARA ELIMINAR LOS ARCHIVOS DE OBJETO ( extensiones .o ).
