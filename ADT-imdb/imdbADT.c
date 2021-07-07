@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #define BLOCK 10
+#define ISNULL(x) ((x) == NULL)
 
 typedef struct tMediaInfo {
     char * title;
@@ -121,4 +122,58 @@ void addData(imdbADT imdb, titleType type, char * title, int year, float rating,
              addToGenre(imdb->first, year, genre);   
         }
     }
+}
+
+void toBeginForYears(imdbADT imdb) {
+    imdb->iterY = imdb->first;
+}
+
+int hasNextForYear(imdbADT imdb) {
+    return imdb->iterY != NULL;
+}
+
+char ** nextForYear(imdbADT imdb , size_t * amount , size_t * votes , float * rating , int * year) {
+    if (!hasNextForYears(imdb)) {
+        return NULL;
+    }
+    char ** names = malloc(sizeof(char *) *CANT_TYPES);
+    if(ISNULL(names))
+        return NULL;
+    for( int i = 0 ; i < CANT_TYPES ; i++){
+        names[i] = malloc(imdb->iterY->media[i].dimTitle +1);
+        if(ISNULL(names[i])){
+            for(int j = 0 ; j < i ; j++)
+                free(names[i]);
+            free(names);
+            return NULL;
+        }
+        strcpy(names[i] , imdb->iterY->media[i].title);
+        amount[i] = imdb->iterY->cant[MOVIE];
+        votes[i] = imdb->iterY->media[i].cantVotos;
+        rating[i] = imdb->iterY->media[i].rating;
+    }
+    *year = imdb->iterY->year;
+    imdb->iterY = imdb->iterY->tail;
+    return names;
+}
+
+void toBeginForGenre(imdbADT imdb) {
+    imdb->iterY->iterG = imdb->first->first;
+}
+
+int hasNextForGenre(imdbADT imdb) {
+    return imdb->iterY->iterG != NULL;
+}
+
+char *nextForGenre(imdbADT imdb , size_t * amount ) {
+    if (!hasNextForGenre(imdb)){
+        return NULL;
+    }
+    char * res = malloc( imdb->iterY->iterG->dimGenre + 1 );
+    if(ISNULL(res))
+        return NULL;
+    strcpy(res , imdb->iterY->iterG->genre);
+    *amount = imdb->iterY->iterG->cantFilms;
+    imdb->iterY->iterG = imdb->iterY->iterG->tail;
+    return res;
 }
