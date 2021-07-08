@@ -91,7 +91,7 @@ static void addMedia( tMediaInfo * media , char * newTitle , float newRating , s
     free(media->title); // si es NULL no pasa nada, sino lo libera el titulo anterior
     media->title = copy(newTitle);
     if (media->title == NULL || errno == ENOMEM)
-        return errno;
+        return ;
     media->cantVotos = newVotes;
     media->rating = newRating;
 }
@@ -150,11 +150,6 @@ static tLYear searchYear(tLYear first, int year) {
 }
 
 static void addToGenre(tLYear first, int year, char * genre) {
-    /* dsp vemos si lo usamos (seria mas eficiente [pero menos fachera ;)] )
-    tLYear aux = first;
-    while (compareYear(aux->year, year) < 0) {
-        aux = aux->tail;
-    }*/
     tLYear cYear = searchYear(first, year);
     cYear->first = addToGenreRec(cYear->first, genre);
 }

@@ -98,14 +98,13 @@ int main(int cantArg, char * args[]) {
         }
         if (validYear) {
             if (strcmp(type, "movie") == 0) {
-                if (addData(imdb, MOVIE, title, year, rating, votes, genres) == ENOMEM) {
-                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
-                }
+                addData(imdb, MOVIE, title, year, rating, votes, genres);
             } else if (strcmp(type, "tvSeries") == 0) {
-                if (addData(imdb, SERIES, title, year, rating, votes, genres) == ENOMEM) {
-                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
-                }
+                addData(imdb, SERIES, title, year, rating, votes, genres);
             }
+        }
+        if(errno == ENOMEM) {
+            closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
         }
     }
 
