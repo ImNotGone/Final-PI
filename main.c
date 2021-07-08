@@ -14,7 +14,7 @@
 #define HEADER2 "year;genre;films"
 #define HEADER3 "startYear;film;votesFilm;ratingFilm;serie;votesSerie;ratingSerie"
 
-typedef enum ERRORS {ARGC = 1, INV_FILE, NO_MEM} ERRORS;
+typedef enum ERRORS {ARGC = 1, INV_FILE} ERRORS;
 
 #define CANT_DIVIDERS 7
 // no ponemos runtime porque no se usa
@@ -55,9 +55,9 @@ int main(int cantArg, char * args[]) {
     }
 
     imdbADT imdb = newImdb();
-    if (imdb == NULL){
+    if (imdb == NULL || errno == ENOMEM){
         closeFiles(files, fileCount);
-        errNOut("No hay memoria disponible en el heap", NO_MEM);
+        errNOut("No hay memoria disponible en el heap", errno);
     }
 
     /*================ CARGA DE DATOS ================*/
@@ -98,12 +98,12 @@ int main(int cantArg, char * args[]) {
         }
         if (validYear) {
             if (strcmp(type, "movie") == 0) {
-                if (addData(imdb, MOVIE, title, year, rating, votes, genres) == MEM_ERROR) {
-                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", MEM_ERROR);
+                if (addData(imdb, MOVIE, title, year, rating, votes, genres) == ENOMEM) {
+                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
                 }
             } else if (strcmp(type, "tvSeries") == 0) {
-                if (addData(imdb, SERIES, title, year, rating, votes, genres) == MEM_ERROR) {
-                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", MEM_ERROR);
+                if (addData(imdb, SERIES, title, year, rating, votes, genres) == ENOMEM) {
+                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
                 }
             }
         }

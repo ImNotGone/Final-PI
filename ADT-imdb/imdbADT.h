@@ -2,6 +2,7 @@
 #define IMDB_ADT_H
 
 #include <stdlib.h>
+#include <errno.h>
 
 #define BLOCK 10
 #define DELIM ";"
@@ -12,8 +13,7 @@ typedef struct imdbCDT * imdbADT;
 typedef enum {MOVIE = 0, SERIES} titleType;
 #define T_GEN MOVIE
 #define OK 1
-#define BUFF_OF (-1)
-#define MEM_ERROR (-2)
+#define BUFF_OF (-1) // sprintf retorna -1 si no entro el string en el buffer
 #define NERR (-3)
 
 // Genera TAD vacio para almacenar los datos necesarios
