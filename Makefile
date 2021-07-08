@@ -14,6 +14,9 @@ all: $(OBJS)
 debug: FLAGS += $(DEBUG)
 debug: all
 
+memchk: FLAGS += -DMEMCHK=1
+memchk: all
+
 main.o: main.c ADT-imdb/imdbADT.h
 	$(COMPILER) $(FLAGS) -c main.c
 

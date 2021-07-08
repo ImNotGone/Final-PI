@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <string.h>
 #include <math.h>
+#include <time.h>
 
 #define CANT_QUERYS 3
 #define BUFF_SIZE 512 
@@ -31,10 +32,44 @@ void closeFiles(FILE ** files, size_t fileCount);
 // con el codigo indicado
 void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg,int exitCode);
 
+#ifdef MEMCHK
+#include <sys/resource.h>
+static void
+setMemLimit(size_t memLimit) {
+    struct rlimit limit;
+    limit.rlim_cur = memLimit;
+    limit.rlim_max = memLimit;
+    if (setrlimit(RLIMIT_AS, &limit) != 0) {
+        fprintf(stderr, "setrlimit() failed with errno=%d\n", errno);
+        exit(EXIT_FAILURE);
+    }
+    if (setrlimit(RLIMIT_DATA, &limit) != 0) {
+        fprintf(stderr, "setrlimit() failed with errno=%d\n", errno);
+        exit(EXIT_FAILURE);
+    }
+}
+#endif
+
+
 // Permite el procesamiento de los datos de Imdb
 int main(int cantArg, char * args[]) {
+    clock_t start = clock();
+
     if (cantArg != 2)
         errNOut("Cantidad invalida de parametros", ARGC);
+
+    #ifdef MEMCHK
+    setMemLimit(200 * sizeof(int)); // Limite de 5000 ints
+
+    void * aux;
+    long n = 0;
+    do {
+        errno = 0;
+        aux = malloc(1024);
+        n++;
+    } while ( aux != NULL && !errno);
+    printf("Falla despues de %ld KB   %ld MB\n", n, n / 1024 );
+    #endif
 
     errno = 0;
     FILE * data = fopen(args[1], "r");
@@ -50,14 +85,14 @@ int main(int cantArg, char * args[]) {
     for(int i = 0; i < fileCount; i++) {
         if(files[i] == NULL) {
             closeFiles(files, fileCount);
-            errNOut("Hubo un error al abrir un archivo", errno);
+            errNOut("Hubo un error al abrir un archivo", ENOMEM);
         }
     }
 
     imdbADT imdb = newImdb();
     if (imdb == NULL || errno == ENOMEM){
         closeFiles(files, fileCount);
-        errNOut("No hay memoria disponible en el heap", errno);
+        errNOut("No hay memoria disponible en el heap", ENOMEM);
     }
 
     /*================ CARGA DE DATOS ================*/
@@ -137,6 +172,9 @@ int main(int cantArg, char * args[]) {
         }
         
     }
+    clock_t stop = clock();
+    double elapsed = (double) (stop - start) / CLOCKS_PER_SEC;
+    printf("Execution successfull in: %.5f\n", elapsed);
     closeFiles(files, fileCount);
     freeImdb(imdb);
     return 0;
