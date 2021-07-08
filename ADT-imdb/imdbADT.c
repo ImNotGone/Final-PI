@@ -236,5 +236,6 @@ int getQ3(imdbADT imdb, char * buff) {
         serie = NONE;
     size_t votesSerie = imdb->iterY->media[SERIES].cantVotos;
     float ratingSeries = imdb->iterY->media[SERIES].rating;
+    // disculpas de antemano O.o
     return sprintf(buff, "%d%s%s%s%zu%s%.1f%s%s%s%zu%s%.1f", year, DELIM, film, DELIM, votesFilm, DELIM, ratingFilm, DELIM, serie, DELIM, votesSerie, DELIM, ratingSeries);
 }

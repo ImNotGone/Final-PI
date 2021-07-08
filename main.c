@@ -9,6 +9,7 @@
 #define BUFF_SIZE 512 
 #define FALSE 0
 #define TRUE !FALSE
+#define NO_GENRE "Undefined"
 #define HEADER1 "year;films;series"
 #define HEADER2 "year;genre;films"
 #define HEADER3 "startYear;film;votesFilm;ratingFilm;serie;votesSerie;ratingSerie"
@@ -73,8 +74,11 @@ int main(int cantArg, char * args[]) {
         validYear = TRUE;
         token = strtok(buff, DELIM);
         for(size_t pos = 0; pos < CANT_DIVIDERS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
-            // Se asumio que no hay ningun NONE en {type, title, year, genre, rating, votes}
-            // Ya que en el DOC de la consigna se asume que los datos son correctos
+            // Tomamos en consideracion unicamente si no existe el anio para la carga de datos.
+            // En caso de que tanto el rating como los votos sean NONE o \N asumimos que valen 0 
+            // (atoi y atof devuelven 0 en caso que no sean numeros). 
+            // Si el tipo es distinto de "movie" o "tvSeries", lo ignoramos para el data entry.
+            // No importa lo que sea el genero (incluso si es \N) lo tomamos en cosideracion como valido
             switch (pos) {
                 case TYPE: type = token; break;
                 case TITLE: title = token; break;
@@ -83,7 +87,11 @@ int main(int cantArg, char * args[]) {
                         validYear = FALSE;
                     year = atoi(token);
                     break;
-                case GENRES: genres = token; break;
+                case GENRES:
+                    genres = token;
+                    if (strcmp(token, NONE) == 0)
+                        genres = NO_GENRE;
+                    break;
                 case RATING: rating = atof(token); break;
                 case VOTES: votes = atoi(token); break;
             }
@@ -91,11 +99,11 @@ int main(int cantArg, char * args[]) {
         if (validYear) {
             if (strcmp(type, "movie") == 0) {
                 if (addData(imdb, MOVIE, title, year, rating, votes, genres) == MEM_ERROR) {
-                    /* COSAS DE ERROR */
+                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", MEM_ERROR);
                 }
             } else if (strcmp(type, "tvSeries") == 0) {
                 if (addData(imdb, SERIES, title, year, rating, votes, genres) == MEM_ERROR) {
-                    /* COSAS DE ERROR */
+                    closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", MEM_ERROR);
                 }
             }
         }
