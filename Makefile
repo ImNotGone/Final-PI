@@ -15,6 +15,7 @@ debug: FLAGS += $(DEBUG)
 debug: all
 
 memchk: FLAGS += -DMEMCHK=1
+memchk: LINK_FLAGS = $(FLAGS)
 memchk: all
 
 main.o: main.c ADT-imdb/imdbADT.h
