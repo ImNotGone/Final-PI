@@ -36,9 +36,9 @@ typedef tNGenre * tLGenre;
 // Usamos una lista para insertar en orden decendente por anio
 typedef struct tNYear {
     int year;                       // El anio actual
-    size_t cant[CANT_TYPES];        // La cantidad de peliculas en la pos MOVIE y de series en la pos SERIES 
+    size_t cant[CANT_TYPES];        // La cantidad de peliculas en la pos "MOVIE" (=0) y de series en la pos "SERIES" (=1) 
     tLGenre first;                  // Puntero al primer nodo de la lista de generos para cada anio
-    tMediaInfo media[CANT_TYPES];   // La informacion de la pelicula mas votada en la pos MOVIE y la serie mas votada en la pos SERIES 
+    tMediaInfo media[CANT_TYPES];   // La informacion de la pelicula mas votada en la pos "MOVIE" (=0) y la serie mas votada en la pos "SERIES" (=1) 
     struct tNYear * tail;           // Puntero al siguiente nodo de la lista
 } tNYear;
 
@@ -92,7 +92,7 @@ void freeImdb(imdbADT imdb) {
     free(imdb);
 }
 
-// Auxiliar "copy", recibe un string
+// Auxiliar copy(), recibe un string
 // devuelve un puntero a la copia del string almacenada en el heap
 // si no se pudo reservar memoria retorna NULL
 // y se asegura que errno sea ENOMEM ver -> (1)
@@ -125,7 +125,7 @@ static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_
     // Genera el nuevo titulo
     media->title = copy(newTitle);
     if (media->title == NULL || errno == ENOMEM) {
-        errno = ENOMEM; // ver -> (1)
+        // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
         return;
     }
     // Actualizo los datos de la pelicula/serie
@@ -171,13 +171,13 @@ static tLYear addToYear(tLYear first, titleType type, char * title, int year, fl
 
 // Funcion auxiliar para la carga de datos a un genero nuevo
 // o la actualizacion de la cantidad por genero si el mismo ya existe
-static tLGenre addToGenreRec(tLGenre first, char * genre) {
+static tLGenre addToGenre(tLGenre first, char * genre) {
     int c;
     if (first == NULL || (c=compareGenre(first->genre, genre)) > 0 ) {
         // malloc() ya que voy a llenar todo el struct
         tLGenre newNode = malloc(sizeof(tNGenre)); 
         if (newNode == NULL || errno == ENOMEM) {
-            errno = ENOMEM; // ver -> (1)
+            // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
             // Si no hay memoria quiero que se siga encadenando la lista 
             // por lo que retorno first
             // ademas no puedo desreferenciar el nuevo nodo
@@ -202,7 +202,7 @@ static tLGenre addToGenreRec(tLGenre first, char * genre) {
         first->cant++;
         return first;
     }
-    first->tail = addToGenreRec(first->tail, genre);
+    first->tail = addToGenre(first->tail, genre);
     return first;
 }
 
@@ -226,15 +226,11 @@ static tLYear searchYear(tLYear first, int year) {
     */
 }
 
-/* INEFICIENTE
-static void addToGenre(tLYear first, int year, char * genre) {
-    // setea el anio cada vez q entra en vez de hacerlo 1 vez por recorrido
-    tLYear cYear = searchYear(first, year);             
-    cYear->first = addToGenreRec(cYear->first, genre);
-}
-*/
-
 int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
+    // Si el tipo no es valido retorno !"OK"
+    if (type < 0 || type >= CANT_TYPES) {
+        return !OK;
+    }
     imdb->first = addToYear(imdb->first, type, title, year, rating, votes);
     // Si hubo algun error al reservar memoria lo atrapo
     // y retorno lo antes posible para que se notifique al usuario
@@ -245,7 +241,7 @@ int addData(imdbADT imdb, titleType type, char * title, int year, float rating, 
         // Agregue el anio en addToYear asi que no verifico que no este :)
         tLYear currentYear = searchYear(imdb->first, year);
         for (genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
-            currentYear->first = addToGenreRec(currentYear->first, genre);
+            currentYear->first = addToGenre(currentYear->first, genre);
             // Si hubo algun error al reservar memoria lo atrapo
             // y retorno lo antes posible para que se notifique al usuario
             if (errno == ENOMEM)

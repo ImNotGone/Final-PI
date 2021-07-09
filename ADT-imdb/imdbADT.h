@@ -14,7 +14,7 @@
 #define ENEXT (-1)
 
 // CANT_TYPES debe ir siempre al final para que se defina correctamente la cantidad de tipos
-typedef enum {MOVIE = 0, SERIES, CANT_TYPES} titleType; 
+typedef enum titleType {MOVIE = 0, SERIES, CANT_TYPES} titleType; 
 // Para determinar a que tipo se le trackean los generos
 #define TRACK_GENRE_TO MOVIE 
 
@@ -30,6 +30,7 @@ void freeImdb(imdbADT imdb);
 // Permite la carga de datos que recibe al TAD
 // trakea unicamente la cantidad de Media por genero que se eligio en "T_GEN"
 // si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
+// si el type es invalido retorna "!OK"
 // sino retorna "OK" 
 int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres);
 
@@ -56,6 +57,9 @@ int hasNextGenre(imdbADT imdb);
 // si hubo algun error retorna "ENEXT"
 // sino retorna "OK"
 int nextGenre(imdbADT imdb);
+
+// Hacemos que las funciones getQ* (1, 2 y 3) retornen la linea ya armada por simplicidad.
+// La idea es evitar el uso de una extensiva cantidad de variables de salida
 
 // Carga la informacion necesaria para la query 1 en el buffer
 // en caso de que el buffer no sea de tamanio suficiente retorna (-1)

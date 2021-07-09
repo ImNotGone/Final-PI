@@ -21,8 +21,8 @@
 #define BUFF_OF (-1) 
 
 // Columnas del .csv recibido no ponemos runtime (que seria la columna 8) porque no se usa
-// Al poner CANT_DIVIDERS en la ultima posicion, nos da la longitud del enum (=7)
-typedef enum DIVIDERS {TYPE = 0, TITLE, S_YEAR, E_YEAR, GENRES, RATING, VOTES, CANT_DIVIDERS} DIVIDERS; 
+// Al poner CANT_FIELDS en la ultima posicion, nos da la longitud del enum (=7)
+typedef enum FIELDS {TYPE = 0, TITLE, S_YEAR, E_YEAR, GENRES, RATING, VOTES, CANT_FIELDS} FIELDS; 
 
 // Aborta el programa con el valor que recibe
 // enviando un mensaje a la salida de error
@@ -90,7 +90,7 @@ int main(int cantArg, char * args[]) {
     while(fgets(buff, BUFF_SIZE, data) != NULL) {
         validYear = TRUE;
         token = strtok(buff, DELIM);
-        for(size_t pos = 0; pos < CANT_DIVIDERS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
+        for(size_t pos = 0; pos < CANT_FIELDS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
             // Tomamos en consideracion unicamente si no existe el anio para la carga de datos.
             // En caso de que tanto el rating como los votos sean "NONE" (="\\N") asumimos que valen 0 
             // (atoi y atof devuelven 0 en caso que no sean numeros). 
@@ -116,6 +116,7 @@ int main(int cantArg, char * args[]) {
         }
         // Si el anio es valido cargamos los datos acorde al tipo recibido
         if (validYear) {
+            // Se usan estos condicionales para evitar el caso en el que haya mas de 2 categorias
             if (strcmp(type, "movie") == 0) {
                 addData(imdb, MOVIE, title, year, rating, votes, genres);
             } else if (strcmp(type, "tvSeries") == 0) {
