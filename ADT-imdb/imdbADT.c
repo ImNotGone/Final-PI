@@ -2,20 +2,21 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-// Preguntar si seria mas eficiente usar seniales para atrapar errores :)
 
 // 1)
-// se dio a entender en una respuesta en el foro
+// Se dio a entender en una respuesta en el foro
 // que no alcanzaba unicamente usar errno == ENOMEM
-// por lo q comprendo que hay casos en los que los 
+// por lo que comprendemos que hay casos en los que los 
 // -alloc retornan NULL sin setear correctamente el errno (?)
-// asi q decidimos hacerlo manualmente en cada chequeo 
-// por las dudas, para q funcione correctamente el 
+// asi que decidimos hacerlo manualmente en cada chequeo 
+// por las dudas, para que funcione correctamente el 
 // errno == ENOMEM en el main.c luego de addData
 
+// Cuantos bloques de memoria se reservan de una en 
+// la funcion auxiliar "copy"
 #define BLOCK 10
 
-// para guardar la informacion relevante a la Q3
+// Para guardar la informacion relevante a la Q3
 // tanto para peliculas como para series
 typedef struct tMediaInfo {
     char * title;       
@@ -25,8 +26,8 @@ typedef struct tMediaInfo {
 
 // Usamos una lista para poder insertar en orden alfabetico por genero
 typedef struct tNGenre {
-    char * genre;           // el genero del nodo actual
-    size_t cant;            // la cantidad de repeticiones de un genero para el seleccionado en T_GEN
+    char * genre;           // El genero del nodo actual
+    size_t cant;            // La cantidad de apariciones de dicho genero para "TRACK_GENRE_TO"
     struct tNGenre * tail;  // Puntero al siguiente nodo en la lista
 } tNGenre;
 
@@ -35,9 +36,9 @@ typedef tNGenre * tLGenre;
 // Usamos una lista para insertar en orden decendente por anio
 typedef struct tNYear {
     int year;                       // El anio actual
-    size_t cant[CANT_TYPES];        // La pelicula en la pos MOVIE y la serie en la pos SERIES 
+    size_t cant[CANT_TYPES];        // La cantidad de peliculas en la pos MOVIE y de series en la pos SERIES 
     tLGenre first;                  // Puntero al primer nodo de la lista de generos para cada anio
-    tMediaInfo media[CANT_TYPES];   // La pelicula en la pos MOVIE y la serie en la pos SERIES 
+    tMediaInfo media[CANT_TYPES];   // La informacion de la pelicula mas votada en la pos MOVIE y la serie mas votada en la pos SERIES 
     struct tNYear * tail;           // Puntero al siguiente nodo de la lista
 } tNYear;
 
@@ -119,15 +120,15 @@ static char * copy(char * source) {
 
 // Funcion auxiliar para cargar la nueva informacion
 static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_t newVotes) {
-    // libera el titulo anterior, si no habia libera NULL (por eso usamos calloc en addToYear)
+    // Libera el titulo anterior, si no habia libera NULL (por eso usamos calloc en addToYear)
     free(media->title);
-    // genera el nuevo titulo
+    // Genera el nuevo titulo
     media->title = copy(newTitle);
     if (media->title == NULL || errno == ENOMEM) {
         errno = ENOMEM; // ver -> (1)
         return;
     }
-    // actualizo los datos de la pelicula/serie
+    // Actualizo los datos de la pelicula/serie
     media->cantVotos = newVotes;
     media->rating = newRating;
 }
@@ -137,7 +138,8 @@ static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_
 static tLYear addToYear(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
     int c;
     if (first == NULL || (c=compareYear(first->year, year)) > 0 ) {
-        // para que se inicie correctamente el vector de tMediaInfo y de cantidades
+        // Para que se inicie correctamente el vector de tMediaInfo y de cantidades
+        // utilizamos calloc()
         tLYear newNode = calloc(1, sizeof(tNYear)); 
         if (newNode == NULL || errno == ENOMEM) {
             errno = ENOMEM; // ver -> (1)
@@ -154,9 +156,10 @@ static tLYear addToYear(tLYear first, titleType type, char * title, int year, fl
         return newNode;
     }
     if (c == 0) {
+        // Incremento el contador del tipo especifico
         first->cant[type]++;
-        // si los votos de lo que viene son mayores a los de el que esta
-        // actualizo el vector de tMediaInfo para el anio actual
+        // Si el actual tiene menos votos que el entrante
+        // se actualiza el actual para que siempre quede aquel que mas votos tiene
         if (votes > first->media[type].cantVotos) {
             addMedia(&first->media[type], title, rating, votes);
         }
@@ -167,11 +170,11 @@ static tLYear addToYear(tLYear first, titleType type, char * title, int year, fl
 }
 
 // Funcion auxiliar para la carga de datos a un genero nuevo
-// o la actualizacion de la cantidad por genero si el mismo ya aparecia
+// o la actualizacion de la cantidad por genero si el mismo ya existe
 static tLGenre addToGenreRec(tLGenre first, char * genre) {
     int c;
     if (first == NULL || (c=compareGenre(first->genre, genre)) > 0 ) {
-        // malloc ya que voy a llenar todo el struct
+        // malloc() ya que voy a llenar todo el struct
         tLGenre newNode = malloc(sizeof(tNGenre)); 
         if (newNode == NULL || errno == ENOMEM) {
             errno = ENOMEM; // ver -> (1)
@@ -195,6 +198,7 @@ static tLGenre addToGenreRec(tLGenre first, char * genre) {
         return newNode;
     }
     if (c == 0) {
+        // Incremento el contador para este genero
         first->cant++;
         return first;
     }
@@ -232,18 +236,18 @@ static void addToGenre(tLYear first, int year, char * genre) {
 
 int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
     imdb->first = addToYear(imdb->first, type, title, year, rating, votes);
-    // si hubo algun error al reservar memoria lo atrapo
-    // y notifico lo antes posible al usuario
+    // Si hubo algun error al reservar memoria lo atrapo
+    // y retorno lo antes posible para que se notifique al usuario
     if (errno == ENOMEM)
         return errno;
     if (type == TRACK_GENRE_TO) {
         char * genre;
-        // agregue el anio en addToYear asi que no verifico que no este :)
+        // Agregue el anio en addToYear asi que no verifico que no este :)
         tLYear currentYear = searchYear(imdb->first, year);
         for (genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
             currentYear->first = addToGenreRec(currentYear->first, genre);
-            // si hubo algun error al reservar memoria lo atrapo
-            // y notifico lo antes posible al usuario
+            // Si hubo algun error al reservar memoria lo atrapo
+            // y retorno lo antes posible para que se notifique al usuario
             if (errno == ENOMEM)
                 return errno;
         }

@@ -10,7 +10,7 @@
 #define DELIM_GENRE ","
 
 #define OK 1
-// los "next" para iterar retornan ENEXT si hubo algun error
+// Los "next" para iterar retornan ENEXT si hubo algun error
 #define ENEXT (-1)
 
 // CANT_TYPES debe ir siempre al final para que se defina correctamente la cantidad de tipos
@@ -29,7 +29,7 @@ void freeImdb(imdbADT imdb);
 
 // Permite la carga de datos que recibe al TAD
 // trakea unicamente la cantidad de Media por genero que se eligio en "T_GEN"
-// si hubo algun error de memoria retorna "ENOMEM"
+// si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
 // sino retorna "OK" 
 int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres);
 
