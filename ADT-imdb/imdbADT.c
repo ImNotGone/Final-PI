@@ -2,49 +2,69 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+// Preguntar si seria mas eficiente usar seniales para atrapar errores :)
 
+// 1)
+// se dio a entender en una respuesta en el foro
+// que no alcanzaba unicamente usar errno == ENOMEM
+// por lo q comprendo que hay casos en los que los 
+// -alloc retornan NULL sin setear correctamente el errno (?)
+// asi q decidimos hacerlo manualmente en cada chequeo 
+// por las dudas, para q funcione correctamente el 
+// errno == ENOMEM en el main.c luego de addData
+
+#define BLOCK 10
+
+// para guardar la informacion relevante a la Q3
+// tanto para peliculas como para series
 typedef struct tMediaInfo {
-    char * title;
-    size_t cantVotos;
+    char * title;       
+    size_t cantVotos;   
     float rating;
 } tMediaInfo;
 
+// Usamos una lista para poder insertar en orden alfabetico por genero
 typedef struct tNGenre {
-    char * genre;
-    size_t cantFilms;
-    struct tNGenre * tail;
+    char * genre;           // el genero del nodo actual
+    size_t cant;            // la cantidad de repeticiones de un genero para el seleccionado en T_GEN
+    struct tNGenre * tail;  // Puntero al siguiente nodo en la lista
 } tNGenre;
 
 typedef tNGenre * tLGenre;
 
+// Usamos una lista para insertar en orden decendente por anio
 typedef struct tNYear {
-    int year;
-    size_t cant[CANT_TYPES]; // La pelicula en la pos. 0 y la serie en la pos. 1 
-    tLGenre first;
-    tMediaInfo media[CANT_TYPES]; // La pelicula en la pos. 0 y la serie en la pos. 1 
-    struct tNYear * tail; 
+    int year;                       // El anio actual
+    size_t cant[CANT_TYPES];        // La pelicula en la pos MOVIE y la serie en la pos SERIES 
+    tLGenre first;                  // Puntero al primer nodo de la lista de generos para cada anio
+    tMediaInfo media[CANT_TYPES];   // La pelicula en la pos MOVIE y la serie en la pos SERIES 
+    struct tNYear * tail;           // Puntero al siguiente nodo de la lista
 } tNYear;
 
 typedef tNYear * tLYear;
 
 typedef struct imdbCDT {
-    tLYear first;
-    tLYear iterY;
-    tLGenre iterG;
+    tLYear first;   // puntero al primero nodo de la lista de anios
+    tLYear iterY;   // puntero auxiliar para iterar por los anios
+    tLGenre iterG;  // puntero auxiliar para iterar por los generos de un anio "X"
 } imdbCDT;
 
+// funcion auxiliar que determina el orden en el cual se guardan los anios
 static int compareYear(int year1, int year2) {
     return year2 - year1;
 }
 
+// funcion auxiliar que determina el orden en el cual se guardan los generos
 static int compareGenre(char * genre1, char * genre2) {
     return strcmp(genre1, genre2);
 }
 
-imdbADT newImdb() { 
+imdbADT newImdb(void) {
     return calloc(1, sizeof(imdbCDT));
 }
 
+// Funcion auxiliar para liberar
+// la memoria reservada para la listas de generos
 static void freeGenre(tLGenre genre) {
     if (genre == NULL)
         return;
@@ -53,6 +73,8 @@ static void freeGenre(tLGenre genre) {
     free(genre);
 }
 
+// Funcion auxiliar para liberar 
+// la memoria reservada para la lista de anios
 static void freeYear(tLYear year) {
     if (year == NULL) 
         return;
@@ -69,48 +91,72 @@ void freeImdb(imdbADT imdb) {
     free(imdb);
 }
 
-static char * copy (char * source) {
+// Auxiliar "copy", recibe un string
+// devuelve un puntero a la copia del string almacenada en el heap
+// si no se pudo reservar memoria retorna NULL
+// y se asegura que errno sea ENOMEM ver -> (1)
+static char * copy(char * source) {
     int i;
     char * dest = NULL;
     for (i = 0; source[i] != '\0'; i++) {
         if (i % BLOCK == 0){
-            dest = realloc(dest, (i + BLOCK)*sizeof(char)); // sizeof por claridad aunque no hace falta (1)
-            if (dest == NULL || errno == ENOMEM)
+            dest = realloc(dest, (i + BLOCK)*sizeof(char));
+            if (dest == NULL || errno == ENOMEM) {
+                errno = ENOMEM; // ver -> (1)
                 return NULL;
+            }
         }
         dest[i] = source[i];
     }
-    dest = realloc(dest, (i+1)*sizeof(char)); // idem (1)
-    if (dest == NULL || errno == ENOMEM)
+    dest = realloc(dest, (i+1)*sizeof(char));
+    if (dest == NULL || errno == ENOMEM) {
+        errno = ENOMEM; // ver -> (1)
         return NULL;
+    }
     dest[i] = '\0';
     return dest;
 }
 
-static void addMedia( tMediaInfo * media , char * newTitle , float newRating , size_t newVotes) {
-    free(media->title); // si es NULL no pasa nada, sino lo libera el titulo anterior
+// Funcion auxiliar para cargar la nueva informacion
+static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_t newVotes) {
+    // libera el titulo anterior, si no habia libera NULL (por eso usamos calloc en addToYear)
+    free(media->title);
+    // genera el nuevo titulo
     media->title = copy(newTitle);
-    if (media->title == NULL || errno == ENOMEM)
-        return ;
+    if (media->title == NULL || errno == ENOMEM) {
+        errno = ENOMEM; // ver -> (1)
+        return;
+    }
+    // actualizo los datos de la pelicula/serie
     media->cantVotos = newVotes;
     media->rating = newRating;
 }
 
+// Funcion auxiliar para la carga de datos a un anio nuevo
+// o la actualizacion de los datos de un anio que ya estaba
 static tLYear addToYear(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
     int c;
     if (first == NULL || (c=compareYear(first->year, year)) > 0 ) {
-        tLYear aux = calloc(1, sizeof(tNYear)); // para que se inicie correctamente el vector de tMediaInfo y de cantidades
-        if (aux == NULL || errno == ENOMEM){
-            return first; // Si no hay memoria quiero que se siga encadenando la lista y ademas no puedo desreferenciar aux 
+        // para que se inicie correctamente el vector de tMediaInfo y de cantidades
+        tLYear newNode = calloc(1, sizeof(tNYear)); 
+        if (newNode == NULL || errno == ENOMEM) {
+            errno = ENOMEM; // ver -> (1)
+            // Si no hay memoria quiero que se siga encadenando la lista 
+            // por lo que retorno first
+            // ademas no puedo desreferenciar el nuevo nodo
+            // ya que es una posicion invalida de memoria
+            return first; 
         }
-        aux->year = year;
-        aux->tail = first;
-        aux->cant[type] = 1;
-        addMedia(&aux->media[type], title, rating, votes);
-        return aux;
+        newNode->year = year;
+        newNode->tail = first;
+        newNode->cant[type] = 1;
+        addMedia(&newNode->media[type], title, rating, votes);
+        return newNode;
     }
-    if (c == 0){
+    if (c == 0) {
         first->cant[type]++;
+        // si los votos de lo que viene son mayores a los de el que esta
+        // actualizo el vector de tMediaInfo para el anio actual
         if (votes > first->media[type].cantVotos) {
             addMedia(&first->media[type], title, rating, votes);
         }
@@ -120,50 +166,86 @@ static tLYear addToYear(tLYear first, titleType type, char * title, int year, fl
     return first;
 }
 
+// Funcion auxiliar para la carga de datos a un genero nuevo
+// o la actualizacion de la cantidad por genero si el mismo ya aparecia
 static tLGenre addToGenreRec(tLGenre first, char * genre) {
     int c;
     if (first == NULL || (c=compareGenre(first->genre, genre)) > 0 ) {
-        tLGenre aux = malloc(sizeof(tNGenre)); // malloc ya que voy a llenar toda la struct
-        if (aux == NULL || errno == ENOMEM){
-            return first; // Si no hay memoria quiero que se siga encadenando la lista y ademas no puedo desreferenciar aux 
+        // malloc ya que voy a llenar todo el struct
+        tLGenre newNode = malloc(sizeof(tNGenre)); 
+        if (newNode == NULL || errno == ENOMEM) {
+            errno = ENOMEM; // ver -> (1)
+            // Si no hay memoria quiero que se siga encadenando la lista 
+            // por lo que retorno first
+            // ademas no puedo desreferenciar el nuevo nodo
+            // ya que es una posicion invalida de memoria
+            return first;
         }
-        aux->genre = copy(genre);
-        aux->cantFilms = 1;
-        aux->tail = first;
-        return aux; // retornaba first, 30 minutos de agonia y 13 millones de bytes leakeados B-)
-        // life is pain
+        if ((newNode->genre = copy(genre)) == NULL || errno == ENOMEM) {
+            errno = ENOMEM; // ver -> (1)
+            // en caso de que falle la copia del nombre del nuevo genero
+            // libero la memoria reservada por el nuevo nodo
+            free(newNode);
+            // Si no hay memoria quiero que se siga encadenando la lista 
+            // por lo que retorno first
+            return first;
+        }
+        newNode->cant = 1;
+        newNode->tail = first;
+        return newNode;
     }
     if (c == 0) {
-        first->cantFilms++;
+        first->cant++;
         return first;
     }
     first->tail = addToGenreRec(first->tail, genre);
     return first;
 }
 
+// Funcion auxiliar para la busqueda de un anio en la lista
+// si el anio no esta retorna NULL
 static tLYear searchYear(tLYear first, int year) {
-    // no chequeo que no este "year" en la lista, ya que deberia haberse agregado en addToYear
-    if (compareYear(first->year, year) == 0) {
+    int c;
+    if (first == NULL || (c = compareYear(first->year, year)) > 0)
+        return NULL;
+    if (c == 0)
         return first;
-    }
     return searchYear(first->tail, year);
+    /*
+    tLYear iter = first;
+    while(iter != NULL && compareYear(iter->year, year) < 0) {
+        iter = iter->tail;
+    }
+    if (iter == NULL || compareYear(iter->year, year) != 0)
+        return NULL;
+    return iter;
+    */
 }
 
+/* INEFICIENTE
 static void addToGenre(tLYear first, int year, char * genre) {
-    tLYear cYear = searchYear(first, year);
+    // setea el anio cada vez q entra en vez de hacerlo 1 vez por recorrido
+    tLYear cYear = searchYear(first, year);             
     cYear->first = addToGenreRec(cYear->first, genre);
 }
+*/
 
 int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
     imdb->first = addToYear(imdb->first, type, title, year, rating, votes);
+    // si hubo algun error al reservar memoria lo atrapo
+    // y notifico lo antes posible al usuario
     if (errno == ENOMEM)
         return errno;
-    if (type == T_GEN) {
+    if (type == TRACK_GENRE_TO) {
         char * genre;
+        // agregue el anio en addToYear asi que no verifico que no este :)
+        tLYear currentYear = searchYear(imdb->first, year);
         for (genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
-            addToGenre(imdb->first, year, genre);
+            currentYear->first = addToGenreRec(currentYear->first, genre);
+            // si hubo algun error al reservar memoria lo atrapo
+            // y notifico lo antes posible al usuario
             if (errno == ENOMEM)
-                return errno;   
+                return errno;
         }
     }
     return OK;
@@ -179,15 +261,22 @@ int hasNextYear(imdbADT imdb) {
 
 int nextYear(imdbADT imdb) {
     if(!hasNextYear(imdb))
-        return NERR;
+        return ENEXT;
     int aux = imdb->iterY->year;
     imdb->iterY = imdb->iterY->tail;
     return aux;
 }
 
 void toBeginGenre(imdbADT imdb, int year){
-    tLYear aux = searchYear( imdb->first , year);
-    imdb->iterG = aux->first;
+    tLYear yearNode = searchYear( imdb->first , year);
+    // si searchYear me devolvio NULL el anio no estaba
+    // por lo que dejo el iterador en NULL para que hasnext
+    // no permita iterar
+    if (yearNode == NULL) {
+        imdb->iterG = NULL;
+    } else {
+        imdb->iterG = yearNode->first;
+    }
 }
 
 int hasNextGenre(imdbADT imdb){
@@ -196,9 +285,9 @@ int hasNextGenre(imdbADT imdb){
 
 int nextGenre(imdbADT imdb){
     if(!hasNextGenre(imdb))
-        return NERR;
+        return ENEXT;
     imdb->iterG = imdb->iterG->tail;
-    return !NERR;
+    return OK;
 }
 
 int getQ1(imdbADT imdb, char * buff) {
@@ -209,7 +298,7 @@ int getQ1(imdbADT imdb, char * buff) {
 }
 
 int getQ2(imdbADT imdb, char * buff, int year) {
-    size_t films = imdb->iterG->cantFilms;
+    size_t films = imdb->iterG->cant;
     char * genre = imdb->iterG->genre;
     return sprintf(buff, "%d%s%s%s%zu", year, DELIM, genre, DELIM, films);
 }
@@ -226,6 +315,5 @@ int getQ3(imdbADT imdb, char * buff) {
         serie = NONE;
     size_t votesSerie = imdb->iterY->media[SERIES].cantVotos;
     float ratingSeries = imdb->iterY->media[SERIES].rating;
-    // disculpas de antemano O.o
     return sprintf(buff, "%d%s%s%s%zu%s%.1f%s%s%s%zu%s%.1f", year, DELIM, film, DELIM, votesFilm, DELIM, ratingFilm, DELIM, serie, DELIM, votesSerie, DELIM, ratingSeries);
 }
