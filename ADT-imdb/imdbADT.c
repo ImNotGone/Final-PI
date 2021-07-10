@@ -177,7 +177,7 @@ static tLGenre addToGenre(tLGenre first, char * genre) {
         // malloc() ya que voy a llenar todo el struct
         tLGenre newNode = malloc(sizeof(tNGenre)); 
         if (newNode == NULL || errno == ENOMEM) {
-            // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
+            errno = ENOMEM; // ver -> (1)
             // Si no hay memoria quiero que se siga encadenando la lista 
             // por lo que retorno first
             // ademas no puedo desreferenciar el nuevo nodo
@@ -185,7 +185,7 @@ static tLGenre addToGenre(tLGenre first, char * genre) {
             return first;
         }
         if ((newNode->genre = copy(genre)) == NULL || errno == ENOMEM) {
-            errno = ENOMEM; // ver -> (1)
+            // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
             // en caso de que falle la copia del nombre del nuevo genero
             // libero la memoria reservada por el nuevo nodo
             free(newNode);
