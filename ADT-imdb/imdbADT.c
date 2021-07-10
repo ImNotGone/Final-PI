@@ -103,7 +103,7 @@ static char * copy(char * source) {
     int i;
     char * dest = NULL;
     for (i = 0; source[i] != '\0'; i++) {
-        if (i % BLOCK == 0){
+        if (i % BLOCK == 0) {
             dest = realloc(dest, (i + BLOCK)*sizeof(char));
             if (dest == NULL || errno == ENOMEM) {
                 errno = ENOMEM; // ver -> (1)
@@ -273,7 +273,7 @@ int nextYear(imdbADT imdb) {
     return OK;
 }
 
-void toBeginGenre(imdbADT imdb, int year){
+void toBeginGenre(imdbADT imdb, int year) {
     tLYear yearNode = searchYear( imdb->first , year);
     // si searchYear me devolvio NULL el anio no estaba
     // por lo que dejo el iterador en NULL para que hasnext
@@ -285,11 +285,11 @@ void toBeginGenre(imdbADT imdb, int year){
     }
 }
 
-int hasNextGenre(imdbADT imdb){
+int hasNextGenre(imdbADT imdb) {
     return imdb->iterG != NULL;
 }
 
-int nextGenre(imdbADT imdb){
+int nextGenre(imdbADT imdb) {
     if (!hasNextGenre(imdb))
         return ENEXT;
     imdb->iterG = imdb->iterG->tail;
@@ -354,7 +354,7 @@ char * getGenre(imdbADT imdb) {
 }
 
 size_t getCantGenre(imdbADT imdb) {
-    if(imdb->iterG == NULL)
+    if (imdb->iterG == NULL)
         return ECANT;
     return imdb->iterG->cant;
 }

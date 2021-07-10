@@ -37,16 +37,20 @@ void closeFiles(FILE ** files, size_t fileCount);
 // Libera los recursos utilizados, aborta el programa con el codigo indicado
 void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg,int exitCode);
 
-// Libera la memoria de la matriz de chars recibida hasta dim
-void freeTitles(char ** titles, int dim);
 
-// Cargan los datos correspondientes de cada query
-// Si hubo algun error los loadQ*() (1, 2 y 3) devuelven "ELOAD"
+
+// Las funciones auxiliares loadQ*() (1, 2 y 3) reciben el FILE *
+// donde se desea cargar con fprintf(), cada una "resuelve" una query 
+// si hubo algun error en la carga de los datos, las funciones loadQ*() (1, 2 y 3) devuelven "ELOAD"
 int loadQ1(imdbADT imdb, FILE * file, int year);
 
 int loadQ2(imdbADT imdb, FILE * file, int year);
 
 int loadQ3(imdbADT imdb, FILE * file, int year);
+
+// Funcion auxiliar para liberar la memoria utilizada para la carga de datos en loadQ3()
+// A su vez permite liberar la memoria en caso de que falle prematuramente el loadQ3() (ver comentarios de loadQ3())
+void freeTitles(char ** titles, int dim);
 
 // Permite el procesamiento de los datos de Imdb
 int main(int cantArg, char * args[]) {
@@ -83,7 +87,7 @@ int main(int cantArg, char * args[]) {
     imdbADT imdb = newImdb();
     // Si el TAD no se pudo crear notifico al usuario mediante la salida de error
     // utilizamos "ENOMEM" como error de salida (OUT OF MEMORY en errno.h)
-    if (imdb == NULL || errno == ENOMEM){
+    if (imdb == NULL || errno == ENOMEM) {
         closeFiles(files, fileCount);
         errNOut("No hay memoria disponible en el heap", ENOMEM);
     }
@@ -151,10 +155,11 @@ int main(int cantArg, char * args[]) {
         // Verificamos que no hubiese errores de memoria,
         // si los hubiera notificamos al usuario mediante la salida de error
         // utilizamos "ENOMEM" como error de salida (OUT OF MEMORY en errno.h)
-        if(errno == ENOMEM) {
+        if (errno == ENOMEM) {
             closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
         }
     }
+
     /*================ HEADERS ================*/
     // Imprimimos usando fprintf los headers necesarios a cada archivo
     fprintf(query1, "%s\n", HEADER1);
@@ -284,7 +289,7 @@ void freeTitles(char ** titles, int dim) {
     }
 }
 
-void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg, int exitCode){
+void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg, int exitCode) {
     freeImdb(imdb);
     closeFiles(files, fileCount);
     errNOut(errMsg, exitCode);
@@ -297,6 +302,6 @@ void errNOut(const char * errMsg, int exitCode) {
 
 void closeFiles(FILE * files[], size_t fileCount) {
     for(size_t i = 0; i < fileCount; i++)
-        if(files[i] != NULL) 
+        if (files[i] != NULL) 
             fclose(files[i]);
 }
