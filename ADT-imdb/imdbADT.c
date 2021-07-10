@@ -138,7 +138,7 @@ static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_
 
 // Funcion auxiliar para la carga de datos a un anio nuevo
 // o la actualizacion de los datos de un anio que ya estaba
-static tLYear addToYear(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
+static tLYear addToYearRec(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
     int c;
     if (first == NULL || (c=compareYear(first->year, year)) > 0 ) {
         // Para que se inicie correctamente el vector de tMediaInfo y de cantidades
@@ -168,13 +168,13 @@ static tLYear addToYear(tLYear first, titleType type, char * title, int year, fl
         }
         return first;
     }
-    first->tail = addToYear(first->tail, type, title, year, rating, votes);
+    first->tail = addToYearRec(first->tail, type, title, year, rating, votes);
     return first;
 }
 
 // Funcion auxiliar para la carga de datos a un genero nuevo
 // o la actualizacion de la cantidad por genero si el mismo ya existe
-static tLGenre addToGenre(tLGenre first, char * genre) {
+static tLGenre addToGenreRec(tLGenre first, char * genre) {
     int c;
     if (first == NULL || (c=compareGenre(first->genre, genre)) > 0 ) {
         // malloc() ya que voy a llenar todo el struct
@@ -205,7 +205,7 @@ static tLGenre addToGenre(tLGenre first, char * genre) {
         first->cant++;
         return first;
     }
-    first->tail = addToGenre(first->tail, genre);
+    first->tail = addToGenreRec(first->tail, genre);
     return first;
 }
 
@@ -229,32 +229,32 @@ static tLYear searchYear(tLYear first, int year) {
     */
 }
 
-int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres, char * delimGenre) {
+int addToGenre(imdbADT imdb, char * genre, int year) {
+    // Busco el anio en la lista
+    tLYear currentYear = searchYear(imdb->first, year);
+    // Si el anio no estaba retorno "EYEAR"
+    if (currentYear == NULL) {
+        return EYEAR;
+    }
+    // Sino actualizo la lista de generos en el TAD
+    currentYear->first = addToGenreRec(currentYear->first, genre);
+    // Si hubo algun error al reservar memoria 
+    // retorno errno (que ya vino de addToGenreRec() seteado en "ENOMEM")
+    if (errno == ENOMEM) 
+        return errno;
+    return OK;
+}
+
+int addToYear(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes) {
     // Si el tipo no es valido retorno !"OK"
     if (!VALID_TYPE(type)) {
         return !OK;
     }
-    imdb->first = addToYear(imdb->first, type, title, year, rating, votes);
-    // Si hubo algun error al reservar memoria lo atrapo
-    // y retorno lo antes posible para que se notifique al usuario
+    imdb->first = addToYearRec(imdb->first, type, title, year, rating, votes);
+    // Si hubo algun error al reservar memoria
+    // retorno errno (que ya vino de addToGenreRec() seteado en "ENOMEM")
     if (errno == ENOMEM)
         return errno;
-    if (type == TRACK_GENRE_TO) {
-        char * genre;
-        // Agregue el anio en addToYear asi que no verifico que no este :)
-        tLYear currentYear = searchYear(imdb->first, year);
-        // Podriamos pasar los generos ya "parseados" desde el front y cargarlos de otra manera, 
-        // pero consideramos que es mejor "parsearlos" aca, ya que hace mas eficiente la insercion.
-        // Si los recibieramos individualmente habria que hacer un searchYear para cada uno y como lo tenemos ahora
-        // se hace un searchYear para los generos recibidos en una "tanda"
-        for (genre = strtok(genres, delimGenre); genre != NULL; genre = strtok(NULL, delimGenre)) {
-            currentYear->first = addToGenre(currentYear->first, genre);
-            // Si hubo algun error al reservar memoria lo atrapo
-            // y retorno lo antes posible para que se notifique al usuario
-            if (errno == ENOMEM)
-                return errno;
-        }
-    }
     return OK;
 }
 

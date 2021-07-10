@@ -6,6 +6,8 @@
 
 // Macros utiles
 #define CANT_QUERYS 3
+// Elegimos un valor arbitrarion para el tamanio del buffer acorde a lo que nos
+// parecio necesario
 #define BUFF_SIZE 512 
 #define FALSE 0
 #define TRUE !FALSE
@@ -38,6 +40,7 @@ void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg,int
 // Libera la memoria de la matriz de chars recibida hasta dim
 void freeTitles(char ** titles, int dim);
 
+// Cargan los datos correspondientes de cada query
 // Si hubo algun error los loadQ*() (1, 2 y 3) devuelven "ELOAD"
 int loadQ1(imdbADT imdb, FILE * file, int year);
 
@@ -61,6 +64,7 @@ int main(int cantArg, char * args[]) {
     FILE * query3 = fopen("query3.csv", "w+");
     FILE * files[] = {data, query1, query2, query3};
     size_t fileCount = CANT_QUERYS + cantArg - 1;
+    
     // Se verifica que fopen no tuviese errores en caso de que los hubiese se cierran los archivos
     // y se manda a salida de error un mensaje junto con errno como exit value.
     // Decidimos no chequear con errno, debido a la larga extencion de errores 
@@ -101,7 +105,7 @@ int main(int cantArg, char * args[]) {
     while(fgets(buff, BUFF_SIZE, data) != NULL) {
         validYear = TRUE;
         token = strtok(buff, DELIM);
-        for(size_t pos = 0; pos < CANT_FIELDS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
+        for(size_t pos = 0; pos < CANT_FIELDS && token != NULL && validYear; pos++, token = strtok(NULL, DELIM)) {
             // Tomamos en consideracion unicamente si no existe el anio para la carga de datos.
             // En caso de que tanto el rating como los votos sean "NONE" asumimos que valen 0 
             // (atoi y atof devuelven 0 en caso que no sean numeros). 
@@ -112,14 +116,17 @@ int main(int cantArg, char * args[]) {
                 case TYPE: type = token; break;
                 case TITLE: title = token; break;
                 case S_YEAR:
-                    if (strcmp(token, NONE) == 0)
-                        validYear = FALSE; // Si el anio era "NONE" nos lo saltemos en la carga de datos
+                    if (strcmp(token, NONE) == 0) {
+                        // Si el anio era "NONE" nos lo saltemos en la carga de datos
+                        // Ademas se corta el forloop (mas eficiente)
+                        validYear = FALSE; 
+                    } 
                     year = atoi(token);
                     break;
                 case GENRES:
                     genres = token;
                     if (strcmp(token, NONE) == 0)
-                        genres = NO_GENRE; // Si el genero era "NONE" enviamos "NO_GENRE" (="Undefined")
+                        genres = NO_GENRE; // Si el genero era "NONE" enviamos "NO_GENRE"
                     break;
                 case RATING: rating = atof(token); break;
                 case VOTES: votes = atoi(token); break;
@@ -129,9 +136,16 @@ int main(int cantArg, char * args[]) {
         if (validYear) {
             // Se usan estos condicionales para evitar el caso en el que haya mas de 2 categorias
             if (strcmp(type, "movie") == 0) {
-                addData(imdb, MOVIE, title, year, rating, votes, genres, DELIM_GENRE);
+                addToYear(imdb, MOVIE, title, year, rating, votes);
+                // Si bien seria mas eficiente separar los generos en el back-end 
+                // (para buscar una unica vez el nodo de la lista de anios por "grupo de generos")
+                // decidimos que el front-end deberia encargarse del parseo de TODOS los datos
+                // y el back-end unicamente de procesarlos
+                for (char * genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
+                    addToGenre(imdb, genre, year);
+                }
             } else if (strcmp(type, "tvSeries") == 0) {
-                addData(imdb, SERIES, title, year, rating, votes, genres, DELIM_GENRE);
+                addToYear(imdb, SERIES, title, year, rating, votes);
             }
         }
         // Verificamos que no hubiese errores de memoria,
@@ -141,13 +155,11 @@ int main(int cantArg, char * args[]) {
             closeNExit(imdb, files, fileCount , "No hay memoria disponible en el heap", ENOMEM);
         }
     }
-
     /*================ HEADERS ================*/
     // Imprimimos usando fprintf los headers necesarios a cada archivo
     fprintf(query1, "%s\n", HEADER1);
     fprintf(query2, "%s\n", HEADER2);
     fprintf(query3, "%s\n", HEADER3);
-    
 
     // Iniciamos el iterador
     toBeginYear(imdb);

@@ -15,8 +15,6 @@
 
 // CANT_TYPES debe ir siempre al final para que se defina correctamente la cantidad de tipos
 typedef enum titleType {MOVIE = 0, SERIES, CANT_TYPES} titleType; 
-// Para determinar a que tipo se le trackean los generos
-#define TRACK_GENRE_TO MOVIE 
 
 typedef struct imdbCDT * imdbADT;
 
@@ -27,12 +25,18 @@ imdbADT newImdb(void);
 // Libera la memoria reservada por el TAD
 void freeImdb(imdbADT imdb);
 
-// Permite la carga de datos que recibe al TAD
-// trakea unicamente la cantidad de Media por genero que se eligio en "TRACK_GENRE_TO"
+// Permite la carga de los datos por anio al TAD
 // si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
 // si el type es invalido retorna "!OK"
 // sino retorna "OK" 
-int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres, char * delimGenre);
+int addToYear(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes);
+
+// Permite la carga de los generos por anio al TAD
+// si el anio que recibe no esta en el TAD por lo que 
+// no se puede agregar la informacion retorna "EYEAR"
+// si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
+// sino retorna "OK"
+int addToGenre(imdbADT imdb, char * genre, int year);
 
 // Inicia el iterador por anios
 void toBeginYear(imdbADT imdb);
