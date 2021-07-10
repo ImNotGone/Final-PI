@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <math.h>
 
 // Macros utiles
 #define CANT_QUERYS 3
@@ -11,17 +10,19 @@
 #define FALSE 0
 #define TRUE !FALSE
 #define NO_GENRE "Undefined"
+#define DELIM ";"
+#define DELIM_GENRE ","
 
 // Headers para los archivos de las querys
 #define HEADER1 "year;films;series"
 #define HEADER2 "year;genre;films"
 #define HEADER3 "startYear;film;votesFilm;ratingFilm;serie;votesSerie;ratingSerie"
 
-// Las funciones getQ* (1, 2 y 3) retornan -1 en caso de que el buffer fuese muy chico
-#define BUFF_OF (-1) 
+// Las funciones loadQ*() (1, 2 y 3) devuelven ELOAD si tuvieron algun error
+#define ELOAD (-1)
 
 // Columnas del .csv recibido no ponemos runtime (que seria la columna 8) porque no se usa
-// Al poner CANT_FIELDS en la ultima posicion, nos da la longitud del enum (=7)
+// Al poner CANT_FIELDS en la ultima posicion, nos da la longitud del enum
 typedef enum FIELDS {TYPE = 0, TITLE, S_YEAR, E_YEAR, GENRES, RATING, VOTES, CANT_FIELDS} FIELDS; 
 
 // Aborta el programa con el valor que recibe
@@ -33,6 +34,16 @@ void closeFiles(FILE ** files, size_t fileCount);
 
 // Libera los recursos utilizados, aborta el programa con el codigo indicado
 void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg,int exitCode);
+
+// Libera la memoria de la matriz de chars recibida hasta dim
+void freeTitles(char ** titles, int dim);
+
+// Si hubo algun error los loadQ*() (1, 2 y 3) devuelven "ELOAD"
+int loadQ1(imdbADT imdb, FILE * file, int year);
+
+int loadQ2(imdbADT imdb, FILE * file, int year);
+
+int loadQ3(imdbADT imdb, FILE * file, int year);
 
 // Permite el procesamiento de los datos de Imdb
 int main(int cantArg, char * args[]) {
@@ -92,23 +103,23 @@ int main(int cantArg, char * args[]) {
         token = strtok(buff, DELIM);
         for(size_t pos = 0; pos < CANT_FIELDS && token != NULL; pos++, token = strtok(NULL, DELIM)) {
             // Tomamos en consideracion unicamente si no existe el anio para la carga de datos.
-            // En caso de que tanto el rating como los votos sean "NONE" (="\\N") asumimos que valen 0 
+            // En caso de que tanto el rating como los votos sean "NONE" asumimos que valen 0 
             // (atoi y atof devuelven 0 en caso que no sean numeros). 
             // Si el tipo es distinto de "movie" o "tvSeries", lo ignoramos para el data entry.
             // No importa lo que sea el genero (incluso si es \N) lo tomamos en cosideracion como valido
-            // pero enviamos algo mas descriptivo "NO_GENRE" (="Undefined")
+            // pero enviamos algo mas descriptivo "NO_GENRE" 
             switch (pos) {
                 case TYPE: type = token; break;
                 case TITLE: title = token; break;
                 case S_YEAR:
                     if (strcmp(token, NONE) == 0)
-                        validYear = FALSE; // Si el anio era "NONE" (="\\N") nos lo saltemos en la carga de datos
+                        validYear = FALSE; // Si el anio era "NONE" nos lo saltemos en la carga de datos
                     year = atoi(token);
                     break;
                 case GENRES:
                     genres = token;
                     if (strcmp(token, NONE) == 0)
-                        genres = NO_GENRE; // Si el genero era "NONE" (="\\N") enviamos "NO_GENRE" (="Undefined")
+                        genres = NO_GENRE; // Si el genero era "NONE" enviamos "NO_GENRE" (="Undefined")
                     break;
                 case RATING: rating = atof(token); break;
                 case VOTES: votes = atoi(token); break;
@@ -118,9 +129,9 @@ int main(int cantArg, char * args[]) {
         if (validYear) {
             // Se usan estos condicionales para evitar el caso en el que haya mas de 2 categorias
             if (strcmp(type, "movie") == 0) {
-                addData(imdb, MOVIE, title, year, rating, votes, genres);
+                addData(imdb, MOVIE, title, year, rating, votes, genres, DELIM_GENRE);
             } else if (strcmp(type, "tvSeries") == 0) {
-                addData(imdb, SERIES, title, year, rating, votes, genres);
+                addData(imdb, SERIES, title, year, rating, votes, genres, DELIM_GENRE);
             }
         }
         // Verificamos que no hubiese errores de memoria,
@@ -137,49 +148,128 @@ int main(int cantArg, char * args[]) {
     fprintf(query2, "%s\n", HEADER2);
     fprintf(query3, "%s\n", HEADER3);
     
-    // 1) 
-    // Si hay algun error debido al tamanio del buffer utilizado
-    // getQ* (1, 2 y 3) devuelven "BUFF_OF" (=(-1)), este valor de retorno se utiliza
-    // para poder notificar al usuario mediante la salida de error
 
     // Iniciamos el iterador
     toBeginYear(imdb);
-    // Usamos while(hasNext), para saber cuando debemos dejar de iterar 
+    // Usamos while(hasNextYear), para saber cuando debemos dejar de iterar por anio 
     while(hasNextYear(imdb)) {
+        // Ya que todas las querys usan el anio, llamo a getYear() una unica vez
+        if ((year = getYear(imdb)) == EYEAR)
+            closeNExit(imdb, files, fileCount, "Hubo un error al recibir informacion del TAD", EYEAR);
+        
         /*============== QUERY 1 ==============*/
-        // Obtenemos la informacion necesaria para las lineas de la Q1 las enviamos al archivo mediante fprintf
-        if (getQ1(imdb, buff) == BUFF_OF) {
-            closeNExit(imdb, files, fileCount, "Se debe incrementar el tamanio del buffer", BUFF_OF); // Ver -> (1)
-        }
-        fprintf(query1, "%s\n", buff);
+        // 1) 
+        // chequeo que loadQ*() sea distinto de "ELOAD"
+        if (loadQ1(imdb, query1, year) == ELOAD)
+            closeNExit(imdb, files, fileCount, "Hubo un error al cargar los datos de la Q1", ELOAD);
+        
         /*============== QUERY 3 ==============*/
-        // Obtenemos la informacion necesaria para las lineas de la Q3 las enviamos al archivo mediante fprintf
-        if (getQ3(imdb, buff) == BUFF_OF) {
-            closeNExit(imdb, files, fileCount, "Se debe incrementar el tamanio del buffer", BUFF_OF); // Ver -> (1)
-        }
-        fprintf(query3, "%s\n", buff);
-        // Obtenemos el anio actual y avanzamos la posicion del iterador por anio
-        year = nextYear(imdb);
+        // Idem (1)
+        if (loadQ3(imdb, query3, year) == ELOAD)
+            closeNExit(imdb, files, fileCount, "Hubo un error al cargar los datos de la Q3", ELOAD);
+
         // Iniciamos el iterador de genero con el anio actual
         toBeginGenre(imdb, year);
-        // Usamos while(hasNext), para saber cuando debemos dejar de iterar
+        // Usamos while(hasNextGenre), para saber cuando debemos dejar de iterar por genero
         while(hasNextGenre(imdb)) {
             /*============== QUERY 2 ==============*/
-            // Obtenemos la informacion necesaria para las lineas de la Q2 las enviamos al archivo mediante fprintf
-            if (getQ2(imdb, buff, year) == BUFF_OF) {
-                closeNExit(imdb, files, fileCount, "Se debe incrementar el tamanio del buffer", BUFF_OF); // Ver -> (1)
-            }
-            fprintf(query2, "%s\n", buff);
+            // Idem (1)
+            if (loadQ2(imdb, query2, year) == ELOAD)
+                closeNExit(imdb, files, fileCount, "Hubo un error al cargar los datos de la Q2", ELOAD);
+
             // Avanzamos la posicion del iterador por genero
-            nextGenre(imdb);
+            // 2)
+            // No deberia tener errores, pero verificamos por las dudas
+            // si hubo algun error notificamos al usuario mediante la salida de error
+            // utilizamos el exitCode "ENEXT"
+            if (nextGenre(imdb) == ENEXT) 
+                closeNExit(imdb, files, fileCount, "Hubo un error al iterar por genero", ENEXT);
         }
-        
+        // Avanzamos la posicion del iterador por anio
+        // Idem (2)
+        if (nextYear(imdb) == ENEXT) 
+            closeNExit(imdb, files, fileCount, "Hubo un error al iterar por anios", ENEXT);
     }
     /*============== CERRADO DE ARCHIVOS ==============*/
     closeFiles(files, fileCount);
     /*============= LIBERACION DE MEMORIA =============*/
     freeImdb(imdb);
     return 0;
+}
+
+int loadQ1(imdbADT imdb, FILE * file, int year) {
+    size_t cantYear[CANT_TYPES];
+    // En caso de tener un error al usar getCant() retorno lo antes posible
+    // para notificar al usuario
+    for (int i = 0; i < CANT_TYPES; i++) {
+        if ((cantYear[i] = getCant(imdb, i)) == ECANT)
+            return ELOAD;
+    }
+    int ret = fprintf(file, "%d%s%zu%s%zu\n", year, DELIM, cantYear[MOVIE], DELIM, cantYear[SERIES]);
+    // 3)
+    // Uso la variable ret por claridad en el if
+    // Si fprintf() me devolvio negativo hubo algun error
+    if (ret < 0) {
+        return ELOAD;
+    }
+    return OK;
+}
+
+int loadQ2(imdbADT imdb, FILE * file, int year) {
+    size_t cant;
+    char * genre;
+    // Hacemos los if's por separado por claridad unicamente, se podrian poner en una cadena de or's
+    if ((cant = getCantGenre(imdb)) == ECANT)
+        return ELOAD;
+    if ((genre = getGenre(imdb)) == NULL || errno == ENOMEM) 
+        return ELOAD;
+    int ret = fprintf(file, "%d%s%s%s%zu\n", year, DELIM, genre, DELIM, cant);
+    free(genre); // Libero la memoria reservada por getGenre()
+    // Idem (3)
+    if (ret < 0) {
+        return ELOAD;
+    }
+    return OK;
+}
+
+int loadQ3(imdbADT imdb, FILE * file, int year) {
+    char * titleMax[CANT_TYPES];
+    size_t votesMax[CANT_TYPES];
+    float ratingMax[CANT_TYPES];
+    int i;
+    for (i = 0; i < CANT_TYPES; i++) {
+        // Hacemos los if's por separado por claridad unicamente, se podrian poner en una cadena de or's
+        if ((titleMax[i] = getTitle(imdb, i)) == NULL || errno == ENOMEM) {
+            // 4)
+            // Liberamos la memoria reservada previo al fallo
+            // por si por ejemplo falla en la segunda pasada del ciclo
+            freeTitles(titleMax, i); 
+            return ELOAD;
+        }
+        if ((votesMax[i] = getVotes(imdb, i)) == ECANT) {
+            // Idem (4)
+            freeTitles(titleMax, i);
+            return ELOAD;
+        }
+        if ((ratingMax[i] = getRating(imdb, i)) == ECANT) {
+            // Idem (4)
+            freeTitles(titleMax, i);
+            return ELOAD;
+        }
+    }
+    int ret = fprintf(file, "%d%s%s%s%zu%s%.1f%s%s%s%zu%s%.1f\n", year, DELIM, titleMax[MOVIE], DELIM, votesMax[MOVIE], DELIM, ratingMax[MOVIE], DELIM, titleMax[SERIES], DELIM, votesMax[SERIES], DELIM, ratingMax[SERIES]);
+    freeTitles(titleMax, i); // Liberamos los titulos
+    // Idem (3)
+    if (ret < 0) {
+        return ELOAD;
+    }
+    return OK;
+}
+
+void freeTitles(char ** titles, int dim) {
+    for (int i = 0; i < dim; i++) {
+        free(titles[i]);
+    }
 }
 
 void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg, int exitCode){

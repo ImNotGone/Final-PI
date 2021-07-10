@@ -16,6 +16,9 @@
 // la funcion auxiliar "copy"
 #define BLOCK 10
 
+// Para validar un type
+#define VALID_TYPE(type) ((type) >= 0 && (type) < CANT_TYPES)
+
 // Para guardar la informacion relevante a la Q3
 // tanto para peliculas como para series
 typedef struct tMediaInfo {
@@ -36,9 +39,9 @@ typedef tNGenre * tLGenre;
 // Usamos una lista para insertar en orden decendente por anio
 typedef struct tNYear {
     int year;                       // El anio actual
-    size_t cant[CANT_TYPES];        // La cantidad de peliculas en la pos "MOVIE" (=0) y de series en la pos "SERIES" (=1) 
+    size_t cant[CANT_TYPES];        // La cantidad de peliculas en la pos "MOVIE" y de series en la pos "SERIES"
     tLGenre first;                  // Puntero al primer nodo de la lista de generos para cada anio
-    tMediaInfo media[CANT_TYPES];   // La informacion de la pelicula mas votada en la pos "MOVIE" (=0) y la serie mas votada en la pos "SERIES" (=1) 
+    tMediaInfo media[CANT_TYPES];   // La informacion de la pelicula mas votada en la pos "MOVIE" y la serie mas votada en la pos "SERIES"
     struct tNYear * tail;           // Puntero al siguiente nodo de la lista
 } tNYear;
 
@@ -177,7 +180,7 @@ static tLGenre addToGenre(tLGenre first, char * genre) {
         // malloc() ya que voy a llenar todo el struct
         tLGenre newNode = malloc(sizeof(tNGenre)); 
         if (newNode == NULL || errno == ENOMEM) {
-            // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
+            errno = ENOMEM; 
             // Si no hay memoria quiero que se siga encadenando la lista 
             // por lo que retorno first
             // ademas no puedo desreferenciar el nuevo nodo
@@ -185,7 +188,7 @@ static tLGenre addToGenre(tLGenre first, char * genre) {
             return first;
         }
         if ((newNode->genre = copy(genre)) == NULL || errno == ENOMEM) {
-            errno = ENOMEM; // ver -> (1)
+            // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
             // en caso de que falle la copia del nombre del nuevo genero
             // libero la memoria reservada por el nuevo nodo
             free(newNode);
@@ -226,9 +229,9 @@ static tLYear searchYear(tLYear first, int year) {
     */
 }
 
-int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres) {
+int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres, char * delimGenre) {
     // Si el tipo no es valido retorno !"OK"
-    if (type < 0 || type >= CANT_TYPES) {
+    if (!VALID_TYPE(type)) {
         return !OK;
     }
     imdb->first = addToYear(imdb->first, type, title, year, rating, votes);
@@ -240,7 +243,11 @@ int addData(imdbADT imdb, titleType type, char * title, int year, float rating, 
         char * genre;
         // Agregue el anio en addToYear asi que no verifico que no este :)
         tLYear currentYear = searchYear(imdb->first, year);
-        for (genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
+        // Podriamos pasar los generos ya "parseados" desde el front y cargarlos de otra manera, 
+        // pero consideramos que es mejor "parsearlos" aca, ya que hace mas eficiente la insercion.
+        // Si los recibieramos individualmente habria que hacer un searchYear para cada uno y como lo tenemos ahora
+        // se hace un searchYear para los generos recibidos en una "tanda"
+        for (genre = strtok(genres, delimGenre); genre != NULL; genre = strtok(NULL, delimGenre)) {
             currentYear->first = addToGenre(currentYear->first, genre);
             // Si hubo algun error al reservar memoria lo atrapo
             // y retorno lo antes posible para que se notifique al usuario
@@ -260,11 +267,10 @@ int hasNextYear(imdbADT imdb) {
 }
 
 int nextYear(imdbADT imdb) {
-    if(!hasNextYear(imdb))
+    if (!hasNextYear(imdb))
         return ENEXT;
-    int aux = imdb->iterY->year;
     imdb->iterY = imdb->iterY->tail;
-    return aux;
+    return OK;
 }
 
 void toBeginGenre(imdbADT imdb, int year){
@@ -284,36 +290,71 @@ int hasNextGenre(imdbADT imdb){
 }
 
 int nextGenre(imdbADT imdb){
-    if(!hasNextGenre(imdb))
+    if (!hasNextGenre(imdb))
         return ENEXT;
     imdb->iterG = imdb->iterG->tail;
     return OK;
 }
 
-int getQ1(imdbADT imdb, char * buff) {
-    int year = imdb->iterY->year;
-    size_t films = imdb->iterY->cant[MOVIE];
-    size_t series = imdb->iterY->cant[SERIES];
-    return sprintf(buff, "%d%s%zu%s%zu", year, DELIM ,films, DELIM, series);
+int getYear(imdbADT imdb) {
+    if (imdb->iterY == NULL)
+        return EYEAR;
+    return imdb->iterY->year;
 }
 
-int getQ2(imdbADT imdb, char * buff, int year) {
-    size_t films = imdb->iterG->cant;
-    char * genre = imdb->iterG->genre;
-    return sprintf(buff, "%d%s%s%s%zu", year, DELIM, genre, DELIM, films);
+size_t getCant(imdbADT imdb, titleType type) {
+    if (!VALID_TYPE(type) || imdb->iterY == NULL) 
+        return ECANT;
+    return imdb->iterY->cant[type];
 }
 
-int getQ3(imdbADT imdb, char * buff) {
-    int year = imdb->iterY->year;
-    char * film = imdb->iterY->media[MOVIE].title;
-    if (film == NULL)
-        film = NONE; 
-    size_t votesFilm = imdb->iterY->media[MOVIE].cantVotos;
-    float ratingFilm = imdb->iterY->media[MOVIE].rating;
-    char * serie = imdb->iterY->media[SERIES].title;
-    if (serie == NULL)
-        serie = NONE;
-    size_t votesSerie = imdb->iterY->media[SERIES].cantVotos;
-    float ratingSeries = imdb->iterY->media[SERIES].rating;
-    return sprintf(buff, "%d%s%s%s%zu%s%.1f%s%s%s%zu%s%.1f", year, DELIM, film, DELIM, votesFilm, DELIM, ratingFilm, DELIM, serie, DELIM, votesSerie, DELIM, ratingSeries);
+char * getTitle(imdbADT imdb, titleType type) {
+    if (!VALID_TYPE(type) || imdb->iterY == NULL) {
+        errno = EINVAL;
+        return NULL;
+    }
+    // Si no habia titulo para ese "type" lo remplazo por NONE
+    // De esta manera puedo copiar correctamente y en el .csv me queda "\N"
+    // para el campo vacio.
+    // Esto puede pasar por ejemplo si hay una pelicula 
+    // pero no una serie para un anio o viceversa
+    char * title;
+    if (imdb->iterY->media[type].title != NULL) 
+        title = copy(imdb->iterY->media[type].title);
+    else
+        title = copy(NONE);
+    if (title == NULL || errno == ENOMEM) {
+        // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
+        return NULL;
+    }
+    return title;
+}
+
+size_t getVotes(imdbADT imdb, titleType type) {
+    if (!VALID_TYPE(type) || imdb->iterY == NULL) 
+        return ECANT;
+    return imdb->iterY->media[type].cantVotos;
+}
+
+float getRating(imdbADT imdb, titleType type) {
+    if (!VALID_TYPE(type) || imdb->iterY == NULL) 
+        return ECANT;
+    return imdb->iterY->media[type].rating;
+}
+
+char * getGenre(imdbADT imdb) {
+    if (imdb->iterG == NULL) 
+        return NULL;
+    char * genre = copy(imdb->iterG->genre);
+    if (genre == NULL || errno == ENOMEM) {
+        // errno = ENOMEM; no volvemos a setear errno en ENOMEM, ya que deberia venir seteado desde copy()
+        return NULL;
+    }
+    return genre;
+}
+
+size_t getCantGenre(imdbADT imdb) {
+    if(imdb->iterG == NULL)
+        return ECANT;
+    return imdb->iterG->cant;
 }

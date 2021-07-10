@@ -4,14 +4,14 @@
 #include <stdlib.h>
 #include <errno.h>
 
-// Macros generales
+// Macro auxiliar para indicar un campo vacio
 #define NONE "\\N"
-#define DELIM ";"
-#define DELIM_GENRE ","
 
+// Return values
 #define OK 1
-// Los "next" para iterar retornan ENEXT si hubo algun error
-#define ENEXT (-1)
+#define ENEXT (-2)
+#define EYEAR (-3)
+#define ECANT (-4)
 
 // CANT_TYPES debe ir siempre al final para que se defina correctamente la cantidad de tipos
 typedef enum titleType {MOVIE = 0, SERIES, CANT_TYPES} titleType; 
@@ -28,11 +28,11 @@ imdbADT newImdb(void);
 void freeImdb(imdbADT imdb);
 
 // Permite la carga de datos que recibe al TAD
-// trakea unicamente la cantidad de Media por genero que se eligio en "T_GEN"
+// trakea unicamente la cantidad de Media por genero que se eligio en "TRACK_GENRE_TO"
 // si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
 // si el type es invalido retorna "!OK"
 // sino retorna "OK" 
-int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres);
+int addData(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes, char * genres, char * delimGenre);
 
 // Inicia el iterador por anios
 void toBeginYear(imdbADT imdb);
@@ -43,7 +43,7 @@ int hasNextYear(imdbADT imdb);
 
 // Avanza la posicion del iterador por anio
 // si hubo algun error retorna "ENEXT"
-// sino retorna el anio
+// sino retorna "OK"
 int nextYear(imdbADT imdb);
 
 // Inicia el iterador por generos en el anio indicado
@@ -58,22 +58,38 @@ int hasNextGenre(imdbADT imdb);
 // sino retorna "OK"
 int nextGenre(imdbADT imdb);
 
-// Hacemos que las funciones getQ* (1, 2 y 3) retornen la linea ya armada por simplicidad.
-// La idea es evitar el uso de una extensiva cantidad de variables de salida
+// Devuelve el anio en el cual esta parado el iterador actualmente
+// retorna "EYEAR" si hubo algun error al conseguir el anio
+int getYear(imdbADT imdb);
 
-// Carga la informacion necesaria para la query 1 en el buffer
-// en caso de que el buffer no sea de tamanio suficiente retorna (-1)
-// sino retornan la longitud de el string que se cargo en el buffer
-int getQ1(imdbADT imdb, char * buff);
+// Devuelve la cantidad de veces que un "tipo" (MOVIE o SERIES)
+// aparecio en el anio donde esta parado el iterador
+// retorna "ECANT" si hubo algun error
+size_t getCant(imdbADT imdb, titleType type);
 
-// Carga la informacion necesaria para la query 2 en el buffer
-// en caso de que el buffer no sea de tamanio suficiente retorna (-1)
-// sino retornan la longitud de el string que se cargo en el buffer
-int getQ2(imdbADT imdb, char * buff, int year);
+// Devuelve un puntero a la zona de memoria que contiene una copia
+// del nombre del "type" mas votado para el anio en el cual esta parado el iterador
+// si hubo algun error retorna NULL y setea errno en "ENOMEM"
+char * getTitle(imdbADT imdb, titleType type);
 
-// Carga la informacion necesaria para la query 3 en el buffer
-// en caso de que el buffer no sea de tamanio suficiente retorna (-1)
-// sino retornan la longitud de el string que se cargo en el buffer
-int getQ3(imdbADT imdb, char * buff);
+// Devuelve la cantidad de votos del "type" mas votado para 
+// el anio en el cual esta parado el iterador
+// retorna "ECANT" si hubo algun error
+size_t getVotes(imdbADT imdb, titleType type);
+
+// Devuelve el rating del "type" mas votado para 
+// el anio en el cual esta parado el iterador
+// retorna "ECANT" si hubo algun error
+float getRating(imdbADT imdb, titleType type);
+
+// Devuelve un puntero a una zona de memoria que contiene una copia
+// del nombre del genero en el cual esta parado el iterador
+// si hubo algun error retorna NULL y setea errno en "ENOMEM"
+char * getGenre(imdbADT imdb);
+
+// Devuelve la cantidad de veces que se uso el genero en el cual esta parado el iterador
+// para describir el tipo trackeado segun la macro "TRACK_GENRE_TO"
+// retorna "ECANT" si hubo algun error
+size_t getCantGenre(imdbADT imdb);
 
 #endif //IMDB_ADT_H
