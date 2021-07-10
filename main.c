@@ -35,7 +35,7 @@ void errNOut(const char * errMsg, int exitCode);
 void closeFiles(FILE ** files, size_t fileCount);
 
 // Libera los recursos utilizados, aborta el programa con el codigo indicado
-void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg,int exitCode);
+void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, const char * errMsg, int exitCode);
 
 
 
@@ -289,7 +289,7 @@ void freeTitles(char ** titles, int dim) {
     }
 }
 
-void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, char * errMsg, int exitCode) {
+void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, const char * errMsg, int exitCode) {
     freeImdb(imdb);
     closeFiles(files, fileCount);
     errNOut(errMsg, exitCode);

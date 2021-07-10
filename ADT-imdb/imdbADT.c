@@ -59,7 +59,7 @@ static int compareYear(int year1, int year2) {
 }
 
 // funcion auxiliar que determina el orden en el cual se guardan los generos
-static int compareGenre(char * genre1, char * genre2) {
+static int compareGenre(const char * genre1, const char * genre2) {
     return strcmp(genre1, genre2);
 }
 
@@ -99,7 +99,7 @@ void freeImdb(imdbADT imdb) {
 // devuelve un puntero a la copia del string almacenada en el heap
 // si no se pudo reservar memoria retorna NULL
 // y se asegura que errno sea ENOMEM ver -> (1)
-static char * copy(char * source) {
+static char * copy(const char * source) {
     int i;
     char * dest = NULL;
     for (i = 0; source[i] != '\0'; i++) {
@@ -122,7 +122,7 @@ static char * copy(char * source) {
 }
 
 // Funcion auxiliar para cargar la nueva informacion
-static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_t newVotes) {
+static void addMedia(tMediaInfo * media, const char * newTitle, float newRating, size_t newVotes) {
     // Libera el titulo anterior, si no habia libera NULL (por eso usamos calloc en addToYear)
     free(media->title);
     // Genera el nuevo titulo
@@ -138,7 +138,7 @@ static void addMedia(tMediaInfo * media, char * newTitle, float newRating, size_
 
 // Funcion auxiliar para la carga de datos a un anio nuevo
 // o la actualizacion de los datos de un anio que ya estaba
-static tLYear addToYearRec(tLYear first, titleType type, char * title, int year, float rating, size_t votes) {
+static tLYear addToYearRec(tLYear first, titleType type, const char * title, int year, float rating, size_t votes) {
     int c;
     if (first == NULL || (c=compareYear(first->year, year)) > 0 ) {
         // Para que se inicie correctamente el vector de tMediaInfo y de cantidades
@@ -174,7 +174,7 @@ static tLYear addToYearRec(tLYear first, titleType type, char * title, int year,
 
 // Funcion auxiliar para la carga de datos a un genero nuevo
 // o la actualizacion de la cantidad por genero si el mismo ya existe
-static tLGenre addToGenreRec(tLGenre first, char * genre) {
+static tLGenre addToGenreRec(tLGenre first, const char * genre) {
     int c;
     if (first == NULL || (c=compareGenre(first->genre, genre)) > 0 ) {
         // malloc() ya que voy a llenar todo el struct
@@ -218,18 +218,9 @@ static tLYear searchYear(tLYear first, int year) {
     if (c == 0)
         return first;
     return searchYear(first->tail, year);
-    /*
-    tLYear iter = first;
-    while(iter != NULL && compareYear(iter->year, year) < 0) {
-        iter = iter->tail;
-    }
-    if (iter == NULL || compareYear(iter->year, year) != 0)
-        return NULL;
-    return iter;
-    */
 }
 
-int addToGenre(imdbADT imdb, char * genre, int year) {
+int addToGenre(imdbADT imdb, const char * genre, int year) {
     // Busco el anio en la lista
     tLYear currentYear = searchYear(imdb->first, year);
     // Si el anio no estaba retorno "EYEAR"
@@ -245,7 +236,7 @@ int addToGenre(imdbADT imdb, char * genre, int year) {
     return OK;
 }
 
-int addToYear(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes) {
+int addToYear(imdbADT imdb, titleType type, const char * title, int year, float rating, size_t votes) {
     // Si el tipo no es valido retorno !"OK"
     if (!VALID_TYPE(type)) {
         return !OK;

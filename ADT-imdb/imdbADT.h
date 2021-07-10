@@ -29,14 +29,14 @@ void freeImdb(imdbADT imdb);
 // si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
 // si el type es invalido retorna "!OK"
 // sino retorna "OK" 
-int addToYear(imdbADT imdb, titleType type, char * title, int year, float rating, size_t votes);
+int addToYear(imdbADT imdb, titleType type, const char * title, int year, float rating, size_t votes);
 
 // Permite la carga de los generos por anio al TAD
 // si el anio que recibe no esta en el TAD por lo que 
 // no se puede agregar la informacion retorna "EYEAR"
 // si hubo algun error de memoria retorna "ENOMEM" y setea errno en "ENOMEM"
 // sino retorna "OK"
-int addToGenre(imdbADT imdb, char * genre, int year);
+int addToGenre(imdbADT imdb, const char * genre, int year);
 
 // Inicia el iterador por anios
 void toBeginYear(imdbADT imdb);
