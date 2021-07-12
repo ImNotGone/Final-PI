@@ -4,10 +4,10 @@ LINK_FLAGS 	= $(FLAGS) -fsanitize=address
 DEBUG 		= -g
 BINARY 		= imdb
 OBJS 		= main.o imdbADT.o
-QUERYS 		= query1.csv query2.csv query3.csv
+QUERIES 	= query1.csv query2.csv query3.csv
 
-# El fsanitize=address tira error cuando se 
-# compilan los objetos asi que lo pongo aca
+# -fsanitize=address deberia usarse en la 
+# linkedicion por lo que la dejo aca
 all: $(OBJS)
 	$(COMPILER) $(LINK_FLAGS) $(OBJS) -o $(BINARY)
 
@@ -20,10 +20,10 @@ main.o: main.c ADT-imdb/imdbADT.h
 imdbADT.o: ADT-imdb/imdbADT.c ADT-imdb/imdbADT.h
 	$(COMPILER) $(FLAGS) -c ADT-imdb/imdbADT.c
 
-clean: cleanQuerrys cleanBinary cleanObjs
+clean: cleanQueries cleanBinary cleanObjs
 
-cleanQuerrys:
-	rm -rf $(QUERYS)
+cleanQueries:
+	rm -rf $(QUERIES)
 
 cleanBinary:
 	rm -rf $(BINARY)

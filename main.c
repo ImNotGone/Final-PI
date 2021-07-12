@@ -146,7 +146,7 @@ int main(int cantArg, char * args[]) {
                 // (para buscar una unica vez el nodo de la lista de anios por "grupo de generos")
                 // decidimos que el front-end deberia encargarse del parseo de TODOS los datos
                 // y el back-end unicamente de procesarlos
-                for (char * genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
+                for (char * genre = strtok(genres, DELIM_GENRE); genre != NULL && errno != ENOMEM; genre = strtok(NULL, DELIM_GENRE)) {
                     addToGenre(imdb, genre, year);
                 }
             } else if (strcmp(type, TYPE_SERIES) == 0) {
