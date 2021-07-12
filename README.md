@@ -17,6 +17,6 @@
 
 ## PARA ELIMINAR ARCHIVOS
     - `make clean`        PARA BORRAR TODOS LOS ARCHIVOS
-    - `make cleanQuerrys` PARA ELIMINAR LOS ARCHIVOS .csv CREADOS POR EL PROGRAMA.
+    - `make cleanQueries` PARA ELIMINAR LOS ARCHIVOS .csv CREADOS POR EL PROGRAMA.
     - `make cleanBinary`  PARA ELIMINAR EL EJECUTABLE (imdb).
     - `make cleanObjs`    PARA ELIMINAR LOS ARCHIVOS DE OBJETO ( *.o ).
