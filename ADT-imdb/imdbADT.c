@@ -10,10 +10,10 @@
 // -alloc retornan NULL sin setear correctamente el errno (?)
 // asi que decidimos hacerlo manualmente en cada chequeo 
 // por las dudas, para que funcione correctamente el 
-// errno == ENOMEM en el main.c luego de addData
+// errno == ENOMEM en el main.c luego de addData()
 
 // Cuantos bloques de memoria se reservan de una en 
-// la funcion auxiliar "copy"
+// la funcion auxiliar copy()
 #define BLOCK 10
 
 // Para validar un type
@@ -30,7 +30,7 @@ typedef struct tMediaInfo {
 // Usamos una lista para poder insertar en orden alfabetico por genero
 typedef struct tNGenre {
     char * genre;           // El genero del nodo actual
-    size_t cant;            // La cantidad de apariciones de dicho genero para "TRACK_GENRE_TO"
+    size_t cant;            // La cantidad de apariciones de dicho genero para type = "MOVIE"
     struct tNGenre * tail;  // Puntero al siguiente nodo en la lista
 } tNGenre;
 

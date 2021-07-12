@@ -6,7 +6,7 @@
 
 // Macros utiles
 #define CANT_QUERYS 3
-// Elegimos un valor arbitrarion para el tamanio del buffer acorde a lo que nos
+// Elegimos un valor arbitrario para el tamanio del buffer acorde a lo que nos
 // parecio necesario
 #define BUFF_SIZE 512 
 #define FALSE 0
@@ -19,6 +19,9 @@
 #define HEADER1 "year;films;series"
 #define HEADER2 "year;genre;films"
 #define HEADER3 "startYear;film;votesFilm;ratingFilm;serie;votesSerie;ratingSerie"
+
+#define TYPE_MOVIE "movie"
+#define TYPE_SERIES "tvSeries"
 
 // Las funciones loadQ*() (1, 2 y 3) devuelven ELOAD si tuvieron algun error
 #define ELOAD (-1)
@@ -36,8 +39,6 @@ void closeFiles(FILE ** files, size_t fileCount);
 
 // Libera los recursos utilizados, aborta el programa con el codigo indicado
 void closeNExit(imdbADT imdb, FILE ** files, size_t fileCount, const char * errMsg, int exitCode);
-
-
 
 // Las funciones auxiliares loadQ*() (1, 2 y 3) reciben el FILE *
 // donde se desea cargar con fprintf(), cada una "resuelve" una query 
@@ -139,7 +140,7 @@ int main(int cantArg, char * args[]) {
         // Si el anio es valido cargamos los datos acorde al tipo recibido
         if (validYear) {
             // Se usan estos condicionales para evitar el caso en el que haya mas de 2 categorias
-            if (strcmp(type, "movie") == 0) {
+            if (strcmp(type, TYPE_MOVIE) == 0) {
                 addToYear(imdb, MOVIE, title, year, rating, votes);
                 // Si bien seria mas eficiente separar los generos en el back-end 
                 // (para buscar una unica vez el nodo de la lista de anios por "grupo de generos")
@@ -148,7 +149,7 @@ int main(int cantArg, char * args[]) {
                 for (char * genre = strtok(genres, DELIM_GENRE); genre != NULL; genre = strtok(NULL, DELIM_GENRE)) {
                     addToGenre(imdb, genre, year);
                 }
-            } else if (strcmp(type, "tvSeries") == 0) {
+            } else if (strcmp(type, TYPE_SERIES) == 0) {
                 addToYear(imdb, SERIES, title, year, rating, votes);
             }
         }
